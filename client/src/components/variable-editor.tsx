@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -365,6 +366,26 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
     },
   });
 
+  const updateDefinitionMutation = useMutation({
+    mutationFn: async (updates: { readOnly?: boolean }) => {
+      return await apiRequest("PATCH", `/api/v1/definitions/${variable?.name}`, updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
+      toast({
+        title: "Variable Updated",
+        description: `Variable "${variable?.name}" settings have been updated`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update variable settings",
+        variant: "destructive",
+      });
+    },
+  });
+
 
 
   const renderValueInput = () => {
@@ -390,9 +411,11 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
   };
 
   // Load user-specific value when variable changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (variable && isOpen) {
       setIsLoadingValue(true);
+      setReadOnly(variable.readOnly || false);
+      
       // Fetch the current user's value for this variable with format=json
       fetch(`/api/v1/variables/${variable.name}?format=json`, {
         credentials: 'include'
@@ -442,8 +465,33 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
               <div>Owner: {variable.ownerType}</div>
               <div>Permissions: R:{variable.readPermission} W:{variable.writePermission}</div>
               <div>Default: <span className="font-mono text-xs bg-slate-100 px-1 rounded">{variable.defaultValue || 'null'}</span></div>
+              <div>Read-Only: <span className={`font-mono text-xs px-1 rounded ${variable.readOnly ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                {variable.readOnly ? 'Yes' : 'No'}
+              </span></div>
             </div>
           </div>
+
+          {mode === 'edit' && (
+            <div className="space-y-3 p-4 border rounded-lg">
+              <Label>Variable Settings</Label>
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  checked={readOnly}
+                  onCheckedChange={(checked) => {
+                    setReadOnly(checked as boolean);
+                    updateDefinitionMutation.mutate({ readOnly: checked as boolean });
+                  }}
+                  disabled={updateDefinitionMutation.isPending}
+                />
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">Read-Only Variable</Label>
+                  <p className="text-xs text-slate-600">
+                    When enabled, this variable can only be modified through the web dashboard, not via API calls.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {isLoadingValue ? (
             <div className="flex items-center justify-center py-8">
