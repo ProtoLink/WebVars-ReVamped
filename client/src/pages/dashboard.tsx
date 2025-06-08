@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Settings, Eye, FileText, BarChart3, Cloud, Database, User, Play, BarChart } from "lucide-react";
+import { Plus, Settings, Eye, FileText, BarChart3, Cloud, Database, User, BarChart } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -111,28 +111,7 @@ export default function Dashboard({ userId }: DashboardProps) {
     },
   });
 
-  // Demo data creation mutation
-  const createDemoDataMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", `/api/demo/create?userId=${userId}`, {});
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions", { userId }] });
-      queryClient.invalidateQueries({ queryKey: ["/api/v1/stats", { userId }] });
-      toast({
-        title: "Demo Data Created",
-        description: "Sample Resonite variables have been added to your account",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create demo data",
-        variant: "destructive",
-      });
-    },
-  });
+
 
   // Delete variable mutation
   const deleteVariableMutation = useMutation({
@@ -263,23 +242,6 @@ export default function Dashboard({ userId }: DashboardProps) {
             </div>
             
             <div className="flex space-x-2">
-              <Button 
-                onClick={() => createDemoDataMutation.mutate()}
-                disabled={createDemoDataMutation.isPending}
-                variant="outline"
-                size="sm"
-                className="w-full sm:w-auto"
-              >
-                {createDemoDataMutation.isPending ? (
-                  <LoadingSpinner size="sm" />
-                ) : (
-                  <>
-                    <Play className="h-4 w-4 mr-2" />
-                    Demo Data
-                  </>
-                )}
-              </Button>
-              
               <Button 
                 onClick={() => {
                   apiRequest("POST", "/api/auth/logout").then(() => {
