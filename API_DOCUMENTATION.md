@@ -21,6 +21,14 @@ For external applications and scripts.
 Authorization: Bearer YOUR_API_KEY
 ```
 
+### User ID Authentication (Unsafe Variables)
+For simplified integration with unsafe variables that use userId parameter authentication.
+
+**Query Parameter Format:**
+```
+?userId=YOUR_USER_ID
+```
+
 ## Rate Limits
 - API Endpoints: 100 requests per 15 minutes per IP
 - Variable Operations: 30 requests per minute per IP
@@ -124,7 +132,19 @@ GET /api/v1/variables/{name}
 Authorization: Bearer YOUR_API_KEY
 ```
 
-**Response:**
+**Alternative Authentication (Unsafe Variables):**
+```http
+GET /api/v1/variables/{name}?userId=YOUR_USER_ID
+```
+
+**Response Formats:**
+
+**Text/Plain (Default for Resonite Webhooks):**
+```
+2100
+```
+
+**JSON Format (with ?format=json or Accept: application/json):**
 ```json
 {
   "success": true,
@@ -145,10 +165,37 @@ Authorization: Bearer YOUR_API_KEY
 Content-Type: application/json
 ```
 
+**Alternative Authentication (Unsafe Variables):**
+```http
+POST /api/v1/variables/{name}?userId=YOUR_USER_ID
+Content-Type: application/json
+```
+
 **Request Body:**
 ```json
 {
   "value": "2500"
+}
+```
+
+**Response Formats:**
+
+**Text/Plain (Default for Resonite):**
+```
+OK
+```
+
+**JSON Format (with ?format=json or Accept: application/json):**
+```json
+{
+  "success": true,
+  "data": {
+    "name": "player_score",
+    "value": "2500",
+    "type": "int",
+    "ownerId": "user-123",
+    "updatedAt": "2024-01-01T12:00:00Z"
+  }
 }
 ```
 

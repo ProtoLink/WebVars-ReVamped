@@ -412,8 +412,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if request wants JSON response (for dashboard/API explorer)
       // Default to text/plain for Resonite unless explicitly requesting JSON
-      const wantsJson = req.headers.accept?.includes('application/json') || 
-                       req.query.format === 'json' ||
+      const wantsJson = req.query.format === 'json' ||
+                       (req.headers.accept && req.headers.accept.includes('application/json')) ||
                        req.headers['x-requested-with'] === 'XMLHttpRequest';
       
       if (!value) {
@@ -502,8 +502,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if request wants JSON response (for dashboard/API explorer)
       // Default to text/plain for Resonite unless explicitly requesting JSON
-      const wantsJson = req.headers.accept?.includes('application/json') || 
-                       req.query.format === 'json' ||
+      const wantsJson = req.query.format === 'json' ||
+                       (req.headers.accept && req.headers.accept.includes('application/json')) ||
                        req.headers['x-requested-with'] === 'XMLHttpRequest';
       
       if (wantsJson) {
