@@ -97,7 +97,54 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
           </div>
         );
 
+      case 'float2':
+      case 'double2':
+        const float2Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => parseFloat(p.trim()));
+              return { x: parts[0] || 0, y: parts[1] || 0 };
+            }
+            return JSON.parse(defaultValue || '{"x":0,"y":0}');
+          } catch {
+            return { x: 0, y: 0 };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">Vector2 (X, Y)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">X</Label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={float2Val.x}
+                  onChange={(e) => {
+                    const newVal = { ...float2Val, x: parseFloat(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Y</Label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={float2Val.y}
+                  onChange={(e) => {
+                    const newVal = { ...float2Val, y: parseFloat(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
       case 'float3':
+      case 'double3':
         const float3Val = (() => {
           try {
             if (defaultValue.includes(',')) {
@@ -154,6 +201,212 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
           </div>
         );
 
+      case 'float4':
+      case 'double4':
+        const float4Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => parseFloat(p.trim()));
+              return { x: parts[0] || 0, y: parts[1] || 0, z: parts[2] || 0, w: parts[3] || 0 };
+            }
+            return JSON.parse(defaultValue || '{"x":0,"y":0,"z":0,"w":0}');
+          } catch {
+            return { x: 0, y: 0, z: 0, w: 0 };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">Vector4 (X, Y, Z, W)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">X</Label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={float4Val.x}
+                  onChange={(e) => {
+                    const newVal = { ...float4Val, x: parseFloat(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Y</Label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={float4Val.y}
+                  onChange={(e) => {
+                    const newVal = { ...float4Val, y: parseFloat(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Z</Label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={float4Val.z}
+                  onChange={(e) => {
+                    const newVal = { ...float4Val, z: parseFloat(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">W</Label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={float4Val.w}
+                  onChange={(e) => {
+                    const newVal = { ...float4Val, w: parseFloat(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'float2x2':
+      case 'double2x2':
+        const matrix2x2Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => parseFloat(p.trim()));
+              return [
+                [parts[0] || 0, parts[1] || 0],
+                [parts[2] || 0, parts[3] || 0]
+              ];
+            }
+            return JSON.parse(defaultValue || '[[1,0],[0,1]]');
+          } catch {
+            return [[1, 0], [0, 1]]; // Identity matrix
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">2x2 Matrix</Label>
+            <div className="space-y-2">
+              {matrix2x2Val.map((row, i) => (
+                <div key={i} className="grid grid-cols-2 gap-2">
+                  {row.map((val, j) => (
+                    <Input
+                      key={`${i}-${j}`}
+                      type="number"
+                      step="0.001"
+                      value={val}
+                      onChange={(e) => {
+                        const newMatrix = [...matrix2x2Val];
+                        newMatrix[i][j] = parseFloat(e.target.value) || 0;
+                        setDefaultValue(newMatrix.flat().join(','));
+                      }}
+                      className="text-center"
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'float3x3':
+      case 'double3x3':
+        const matrix3x3Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => parseFloat(p.trim()));
+              return [
+                [parts[0] || 0, parts[1] || 0, parts[2] || 0],
+                [parts[3] || 0, parts[4] || 0, parts[5] || 0],
+                [parts[6] || 0, parts[7] || 0, parts[8] || 0]
+              ];
+            }
+            return JSON.parse(defaultValue || '[[1,0,0],[0,1,0],[0,0,1]]');
+          } catch {
+            return [[1, 0, 0], [0, 1, 0], [0, 0, 1]]; // Identity matrix
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">3x3 Matrix</Label>
+            <div className="space-y-2">
+              {matrix3x3Val.map((row, i) => (
+                <div key={i} className="grid grid-cols-3 gap-2">
+                  {row.map((val, j) => (
+                    <Input
+                      key={`${i}-${j}`}
+                      type="number"
+                      step="0.001"
+                      value={val}
+                      onChange={(e) => {
+                        const newMatrix = [...matrix3x3Val];
+                        newMatrix[i][j] = parseFloat(e.target.value) || 0;
+                        setDefaultValue(newMatrix.flat().join(','));
+                      }}
+                      className="text-center text-sm"
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'float4x4':
+      case 'double4x4':
+        const matrix4x4Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => parseFloat(p.trim()));
+              const matrix = [];
+              for (let i = 0; i < 4; i++) {
+                matrix.push([
+                  parts[i * 4] || 0,
+                  parts[i * 4 + 1] || 0,
+                  parts[i * 4 + 2] || 0,
+                  parts[i * 4 + 3] || 0
+                ]);
+              }
+              return matrix;
+            }
+            return JSON.parse(defaultValue || '[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]');
+          } catch {
+            return [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]; // Identity matrix
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">4x4 Matrix</Label>
+            <div className="space-y-1">
+              {matrix4x4Val.map((row, i) => (
+                <div key={i} className="grid grid-cols-4 gap-1">
+                  {row.map((val, j) => (
+                    <Input
+                      key={`${i}-${j}`}
+                      type="number"
+                      step="0.001"
+                      value={val}
+                      onChange={(e) => {
+                        const newMatrix = [...matrix4x4Val];
+                        newMatrix[i][j] = parseFloat(e.target.value) || 0;
+                        setDefaultValue(newMatrix.flat().join(','));
+                      }}
+                      className="text-center text-xs h-8"
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
       case 'bool':
         return (
           <div className="space-y-2">
@@ -165,6 +418,330 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
               <span className="text-sm text-slate-600">
                 {defaultValue === 'true' ? 'True' : 'False'}
               </span>
+            </div>
+          </div>
+        );
+
+      case 'int2':
+        const int2Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => parseInt(p.trim()));
+              return { x: parts[0] || 0, y: parts[1] || 0 };
+            }
+            return JSON.parse(defaultValue || '{"x":0,"y":0}');
+          } catch {
+            return { x: 0, y: 0 };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">Int2 (X, Y)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">X</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={int2Val.x}
+                  onChange={(e) => {
+                    const newVal = { ...int2Val, x: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Y</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={int2Val.y}
+                  onChange={(e) => {
+                    const newVal = { ...int2Val, y: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'int3':
+        const int3Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => parseInt(p.trim()));
+              return { x: parts[0] || 0, y: parts[1] || 0, z: parts[2] || 0 };
+            }
+            return JSON.parse(defaultValue || '{"x":0,"y":0,"z":0}');
+          } catch {
+            return { x: 0, y: 0, z: 0 };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">Int3 (X, Y, Z)</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs">X</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={int3Val.x}
+                  onChange={(e) => {
+                    const newVal = { ...int3Val, x: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Y</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={int3Val.y}
+                  onChange={(e) => {
+                    const newVal = { ...int3Val, y: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Z</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={int3Val.z}
+                  onChange={(e) => {
+                    const newVal = { ...int3Val, z: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'int4':
+        const int4Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => parseInt(p.trim()));
+              return { x: parts[0] || 0, y: parts[1] || 0, z: parts[2] || 0, w: parts[3] || 0 };
+            }
+            return JSON.parse(defaultValue || '{"x":0,"y":0,"z":0,"w":0}');
+          } catch {
+            return { x: 0, y: 0, z: 0, w: 0 };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">Int4 (X, Y, Z, W)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">X</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={int4Val.x}
+                  onChange={(e) => {
+                    const newVal = { ...int4Val, x: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Y</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={int4Val.y}
+                  onChange={(e) => {
+                    const newVal = { ...int4Val, y: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Z</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={int4Val.z}
+                  onChange={(e) => {
+                    const newVal = { ...int4Val, z: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">W</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={int4Val.w}
+                  onChange={(e) => {
+                    const newVal = { ...int4Val, w: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'bool2':
+        const bool2Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => p.trim() === 'true');
+              return { x: parts[0] || false, y: parts[1] || false };
+            }
+            return JSON.parse(defaultValue || '{"x":false,"y":false}');
+          } catch {
+            return { x: false, y: false };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">Bool2 (X, Y)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex items-center space-x-2">
+                <Label className="text-xs">X</Label>
+                <Switch
+                  checked={bool2Val.x}
+                  onCheckedChange={(checked) => {
+                    const newVal = { ...bool2Val, x: checked };
+                    setDefaultValue(`${newVal.x},${newVal.y}`);
+                  }}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Label className="text-xs">Y</Label>
+                <Switch
+                  checked={bool2Val.y}
+                  onCheckedChange={(checked) => {
+                    const newVal = { ...bool2Val, y: checked };
+                    setDefaultValue(`${newVal.x},${newVal.y}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'bool3':
+        const bool3Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => p.trim() === 'true');
+              return { x: parts[0] || false, y: parts[1] || false, z: parts[2] || false };
+            }
+            return JSON.parse(defaultValue || '{"x":false,"y":false,"z":false}');
+          } catch {
+            return { x: false, y: false, z: false };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">Bool3 (X, Y, Z)</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="flex items-center space-x-2">
+                <Label className="text-xs">X</Label>
+                <Switch
+                  checked={bool3Val.x}
+                  onCheckedChange={(checked) => {
+                    const newVal = { ...bool3Val, x: checked };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Label className="text-xs">Y</Label>
+                <Switch
+                  checked={bool3Val.y}
+                  onCheckedChange={(checked) => {
+                    const newVal = { ...bool3Val, y: checked };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Label className="text-xs">Z</Label>
+                <Switch
+                  checked={bool3Val.z}
+                  onCheckedChange={(checked) => {
+                    const newVal = { ...bool3Val, z: checked };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'bool4':
+        const bool4Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => p.trim() === 'true');
+              return { x: parts[0] || false, y: parts[1] || false, z: parts[2] || false, w: parts[3] || false };
+            }
+            return JSON.parse(defaultValue || '{"x":false,"y":false,"z":false,"w":false}');
+          } catch {
+            return { x: false, y: false, z: false, w: false };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">Bool4 (X, Y, Z, W)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex items-center space-x-2">
+                <Label className="text-xs">X</Label>
+                <Switch
+                  checked={bool4Val.x}
+                  onCheckedChange={(checked) => {
+                    const newVal = { ...bool4Val, x: checked };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Label className="text-xs">Y</Label>
+                <Switch
+                  checked={bool4Val.y}
+                  onCheckedChange={(checked) => {
+                    const newVal = { ...bool4Val, y: checked };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Label className="text-xs">Z</Label>
+                <Switch
+                  checked={bool4Val.z}
+                  onCheckedChange={(checked) => {
+                    const newVal = { ...bool4Val, z: checked };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Label className="text-xs">W</Label>
+                <Switch
+                  checked={bool4Val.w}
+                  onCheckedChange={(checked) => {
+                    const newVal = { ...bool4Val, w: checked };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
             </div>
           </div>
         );
