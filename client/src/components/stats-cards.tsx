@@ -13,12 +13,20 @@ interface StatsCardsProps {
 export function StatsCards({ stats }: StatsCardsProps) {
   const cards = [
     {
-      title: "Total Variables",
+      title: "Private Variables",
       value: stats.totalVariables,
-      change: "+12%",
+      change: "available to you",
       icon: Database,
       iconColor: "text-blue-600",
       iconBg: "bg-blue-100",
+    },
+    {
+      title: "Global Variables",
+      value: stats.totalValues,
+      change: "accessible to all",
+      icon: Database,
+      iconColor: "text-green-600",
+      iconBg: "bg-green-100",
     },
     {
       title: "API Requests",
@@ -35,14 +43,6 @@ export function StatsCards({ stats }: StatsCardsProps) {
       icon: Users,
       iconColor: "text-purple-600",
       iconBg: "bg-purple-100",
-    },
-    {
-      title: "Global Variables",
-      value: stats.totalValues,
-      change: "accessible to all",
-      icon: Database,
-      iconColor: "text-green-600",
-      iconBg: "bg-green-100",
     },
   ];
 

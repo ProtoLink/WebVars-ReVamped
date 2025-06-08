@@ -40,9 +40,9 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
       const formData = {
         ...data,
         ownerType: "user",
-        readPermission: isGlobal ? "public" : "variable_owner",
-        writePermission: isGlobal ? "public" : "variable_owner",
-        listPermission: isGlobal ? "public" : "definition_owner",
+        readPermission: isGlobal ? "anyone" : "variable_owner",
+        writePermission: isGlobal ? "anyone" : "variable_owner",
+        listPermission: isGlobal ? "anyone" : "definition_owner",
       };
       await onSubmit(formData);
       form.reset();
