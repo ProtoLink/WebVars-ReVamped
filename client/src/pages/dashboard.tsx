@@ -34,6 +34,8 @@ export default function Dashboard() {
   const [selectedVariable, setSelectedVariable] = useState<any>(null);
   const [editorMode, setEditorMode] = useState<'edit' | 'view'>('view');
   const [showEditor, setShowEditor] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [variableToDelete, setVariableToDelete] = useState<any>(null);
   const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
   const [newApiKeyName, setNewApiKeyName] = useState("");
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null);
@@ -167,6 +169,30 @@ export default function Dashboard() {
       toast({
         title: "Error",
         description: error.message || "Failed to create API key",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Variable deletion mutation
+  const deleteVariableMutation = useMutation({
+    mutationFn: async (variableId: number) => {
+      return await apiRequest("DELETE", `/api/v1/definitions/${variableId}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/stats"] });
+      setShowDeleteDialog(false);
+      setVariableToDelete(null);
+      toast({
+        title: "Variable Deleted",
+        description: "Variable has been deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Failed to delete variable",
         variant: "destructive",
       });
     },
@@ -356,9 +382,8 @@ export default function Dashboard() {
                     setShowEditor(true);
                   }}
                   onDelete={(variable) => {
-                    setSelectedVariable(variable);
-                    setEditorMode('edit');
-                    setShowEditor(true);
+                    setVariableToDelete(variable);
+                    setShowDeleteDialog(true);
                   }}
                 />
               </div>

@@ -84,10 +84,13 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
 
   const updateMutation = useMutation({
     mutationFn: async (newValue: string) => {
-      return await apiRequest("POST", `/api/v1/variables/${variable?.name}`, { value: newValue });
+      return await apiRequest("PUT", `/api/v1/definitions/${variable?.id}`, { 
+        defaultValue: newValue 
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/stats"] });
       toast({
         title: "Variable Updated",
         description: `${variable?.name} has been updated successfully`,
@@ -105,7 +108,7 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("DELETE", `/api/v1/definitions/${variable?.name}`, {});
+      return await apiRequest("DELETE", `/api/v1/definitions/${variable?.id}`, {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
