@@ -28,11 +28,14 @@ interface VariableTableProps {
   onEdit: (variable: VariableDefinition) => void;
   onView: (variable: VariableDefinition) => void;
   onDelete: (variable: VariableDefinition) => void;
+  apiKeys?: any[];
+  storedKeys?: {[keyId: string]: string};
 }
 
-export function VariableTable({ variables, onEdit, onView, onDelete }: VariableTableProps) {
+export function VariableTable({ variables, onEdit, onView, onDelete, apiKeys = [], storedKeys = {} }: VariableTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [selectedApiKey, setSelectedApiKey] = useState<string>("");
   const { toast } = useToast();
 
   const filteredVariables = variables.filter(variable => {
@@ -43,11 +46,27 @@ export function VariableTable({ variables, onEdit, onView, onDelete }: VariableT
 
   const copyApiUrl = (variable: VariableDefinition) => {
     const baseUrl = window.location.origin;
-    const apiUrl = `${baseUrl}/api/v1/variables/${variable.name}?key=YOUR_API_KEY`;
+    let apiUrl: string;
+    let description: string;
+    
+    if (variable.ownerType === 'unsafe') {
+      // For unsafe variables, use UserID instead of API key
+      apiUrl = `${baseUrl}/api/v1/variables/${variable.name}?userId={YOUR_USER_ID}`;
+      description = `Unsafe variable URL copied - replace {YOUR_USER_ID} with actual user ID`;
+    } else if (selectedApiKey && storedKeys[selectedApiKey]) {
+      // Use selected API key if available
+      apiUrl = `${baseUrl}/api/v1/variables/${variable.name}?key=${storedKeys[selectedApiKey]}`;
+      description = `URL for "${variable.name}" copied with your API key`;
+    } else {
+      // Fallback to placeholder
+      apiUrl = `${baseUrl}/api/v1/variables/${variable.name}?key={YOUR_API_KEY}`;
+      description = `URL for "${variable.name}" copied - replace {YOUR_API_KEY} with your actual key`;
+    }
+    
     navigator.clipboard.writeText(apiUrl);
     toast({
       title: "Resonite API URL Copied",
-      description: `URL for "${variable.name}" copied - replace YOUR_API_KEY with your actual key`,
+      description,
     });
   };
 
@@ -121,6 +140,21 @@ export function VariableTable({ variables, onEdit, onView, onDelete }: VariableT
                 <SelectItem value="bool">bool</SelectItem>
               </SelectContent>
             </Select>
+            {apiKeys.length > 0 && (
+              <Select value={selectedApiKey} onValueChange={setSelectedApiKey}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <SelectValue placeholder="Select API Key for Copy" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Use placeholder</SelectItem>
+                  {apiKeys.map((key: any) => (
+                    <SelectItem key={key.id} value={key.id.toString()}>
+                      {key.name} {storedKeys[key.id] ? '✓' : '(unavailable)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
       </CardHeader>

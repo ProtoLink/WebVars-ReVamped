@@ -42,7 +42,7 @@ export const variableDefinitions = pgTable("variable_definitions", {
   type: varchar("type", { length: 50 }).notNull(),
   defaultValue: text("default_value"),
   ownerId: varchar("owner_id").notNull().references(() => users.id),
-  ownerType: varchar("owner_type", { length: 10 }).notNull().default("user"), // 'user' or 'group'
+  ownerType: varchar("owner_type", { length: 10 }).notNull().default("user"), // 'user', 'group', or 'unsafe'
   readPermission: varchar("read_permission", { length: 50 }).notNull().default("variable_owner"),
   writePermission: varchar("write_permission", { length: 50 }).notNull().default("variable_owner"),
   listPermission: varchar("list_permission", { length: 50 }).notNull().default("definition_owner"),

@@ -440,6 +440,8 @@ export default function Dashboard() {
               <div className="xl:col-span-2">
                 <VariableTable
                   variables={variables}
+                  apiKeys={apiKeys}
+                  storedKeys={storedKeys}
                   onEdit={(variable) => {
                     setSelectedVariable(variable);
                     setEditorMode('edit');
