@@ -82,11 +82,11 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                      variable.ownerId === "system" 
+                      variable.listPermission === "anyone" 
                         ? "bg-green-100 dark:bg-green-900/20" 
                         : "bg-orange-100 dark:bg-orange-900/20"
                     }`}>
-                      {variable.ownerId === "system" ? (
+                      {variable.listPermission === "anyone" ? (
                         <Globe className="h-5 w-5 text-green-600" />
                       ) : (
                         <Lock className="h-5 w-5 text-orange-600" />
@@ -96,14 +96,14 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                       <div className="flex items-center space-x-2">
                         <div className="font-medium text-slate-900 dark:text-white text-sm">{variable.name}</div>
                         <Badge 
-                          variant={variable.ownerId === "system" ? "default" : "secondary"}
+                          variant={variable.listPermission === "anyone" ? "default" : "secondary"}
                           className="text-xs"
                         >
-                          {variable.ownerId === "system" ? "Global" : "Private"}
+                          {variable.listPermission === "anyone" ? "Global" : "Private"}
                         </Badge>
                       </div>
                       <div className="text-xs text-slate-600 dark:text-slate-400">
-                        {variable.ownerId === "system" ? "Shared variable" : "Personal variable"}
+                        {variable.listPermission === "anyone" ? "Accessible to all users" : "Only visible to owner"}
                       </div>
                     </div>
                   </div>
@@ -185,11 +185,11 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                   <TableCell className="py-4 px-4 lg:px-6">
                     <div className="flex items-center">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 ${
-                        variable.ownerId === "system" 
+                        variable.listPermission === "anyone" 
                           ? "bg-green-100 dark:bg-green-900/20" 
                           : "bg-orange-100 dark:bg-orange-900/20"
                       }`}>
-                        {variable.ownerId === "system" ? (
+                        {variable.listPermission === "anyone" ? (
                           <Globe className="h-5 w-5 text-green-600" />
                         ) : (
                           <Lock className="h-5 w-5 text-orange-600" />
@@ -199,14 +199,14 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                         <div className="flex items-center space-x-2">
                           <div className="font-medium text-slate-900 dark:text-white text-sm">{variable.name}</div>
                           <Badge 
-                            variant={variable.ownerId === "system" ? "default" : "secondary"}
+                            variant={variable.listPermission === "anyone" ? "default" : "secondary"}
                             className="text-xs"
                           >
-                            {variable.ownerId === "system" ? "Global" : "Private"}
+                            {variable.listPermission === "anyone" ? "Global" : "Private"}
                           </Badge>
                         </div>
                         <div className="text-xs text-slate-600 dark:text-slate-400">
-                          {variable.ownerId === "system" ? "Shared variable" : "Personal variable"}
+                          {variable.listPermission === "anyone" ? "Accessible to all users" : "Only visible to owner"}
                         </div>
                       </div>
                     </div>
