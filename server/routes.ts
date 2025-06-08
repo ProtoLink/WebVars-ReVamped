@@ -24,7 +24,46 @@ const variableLimiter = rateLimit({
 // WebSocket connection tracking
 const wsConnections = new Map<string, WebSocket>();
 
-// Middleware to authenticate API requests
+// Middleware to authenticate requests (supports both session and API key)
+const authenticateRequest = async (req: any, res: any, next: any) => {
+  // Try session authentication first
+  if (req.isAuthenticated && req.isAuthenticated()) {
+    req.userId = req.user.claims.sub;
+    req.authType = 'session';
+    return next();
+  }
+
+  // Fall back to API key authentication
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing or invalid authorization header' });
+  }
+
+  const apiKey = authHeader.substring(7);
+  const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
+  
+  try {
+    const apiKeyRecord = await storage.getApiKeyByHash(keyHash);
+    
+    if (!apiKeyRecord) {
+      return res.status(401).json({ error: 'Invalid API key' });
+    }
+
+    // Update last used timestamp
+    await storage.updateApiKeyLastUsed(apiKeyRecord.id);
+    
+    req.apiKey = apiKeyRecord;
+    req.userId = apiKeyRecord.userId;
+    req.authType = 'apikey';
+    next();
+  } catch (error) {
+    console.error('API key authentication error:', error);
+    res.status(500).json({ error: 'Authentication failed' });
+  }
+};
+
+// Middleware for API key only authentication (for external API access)
 const authenticateApiKey = async (req: any, res: any, next: any) => {
   const authHeader = req.headers.authorization;
   
@@ -145,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Variable definition endpoints
-  app.get('/api/v1/definitions', authenticateApiKey, async (req: any, res) => {
+  app.get('/api/v1/definitions', authenticateRequest, async (req: any, res) => {
     try {
       const definitions = await storage.getVariableDefinitions(req.userId);
       res.json({
@@ -357,7 +396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API key management endpoints
-  app.get('/api/v1/api-keys', authenticateApiKey, async (req: any, res) => {
+  app.get('/api/v1/api-keys', authenticateRequest, async (req: any, res) => {
     try {
       const apiKeys = await storage.getUserApiKeys(req.userId);
       res.json({
@@ -457,7 +496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Statistics endpoint
-  app.get('/api/v1/stats', authenticateApiKey, async (req: any, res) => {
+  app.get('/api/v1/stats', authenticateRequest, async (req: any, res) => {
     try {
       const stats = await storage.getStats(req.userId);
       res.json({
