@@ -410,45 +410,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const value = await storage.getVariableValue(definition.id, ownerId);
       
+      // Check if request wants JSON response (for dashboard/API explorer)
+      // Default to text/plain for Resonite unless explicitly requesting JSON
+      const wantsJson = req.headers.accept?.includes('application/json') || 
+                       req.query.format === 'json' ||
+                       req.headers['x-requested-with'] === 'XMLHttpRequest';
+      
       if (!value) {
         // Return default value if no specific value exists
-        return res.json({
+        if (wantsJson) {
+          const responseData = {
+            success: true,
+            data: {
+              name: definition.name,
+              type: definition.type,
+              value: definition.defaultValue,
+              owner: ownerId,
+              permissions: {
+                read: definition.readPermission,
+                write: definition.writePermission,
+                list: definition.listPermission
+              },
+              isDefault: true
+            }
+          };
+          return res.json(responseData);
+        } else {
+          // Return raw value for Resonite webhooks
+          return res.set('Content-Type', 'text/plain').send(definition.defaultValue || '');
+        }
+      }
+
+      if (wantsJson) {
+        res.json({
           success: true,
           data: {
             name: definition.name,
             type: definition.type,
-            value: definition.defaultValue,
-            owner: ownerId,
+            value: value.value,
+            owner: value.ownerId,
             permissions: {
               read: definition.readPermission,
               write: definition.writePermission,
               list: definition.listPermission
             },
-            isDefault: true
+            createdAt: value.createdAt,
+            updatedAt: value.updatedAt,
+            isDefault: false
           }
         });
+      } else {
+        // Return raw value for Resonite webhooks
+        res.set('Content-Type', 'text/plain').send(value.value);
       }
-
-      res.json({
-        success: true,
-        data: {
-          name: definition.name,
-          type: definition.type,
-          value: value.value,
-          owner: value.ownerId,
-          permissions: {
-            read: definition.readPermission,
-            write: definition.writePermission,
-            list: definition.listPermission
-          },
-          createdAt: value.createdAt,
-          updatedAt: value.updatedAt,
-          isDefault: false
-        }
-      });
     } catch (error) {
       console.error('Get variable error:', error);
-      res.status(500).json({ error: 'Failed to get variable value' });
+      if (req.headers.accept?.includes('application/json') || req.query.format === 'json') {
+        res.status(500).json({ error: 'Failed to get variable value' });
+      } else {
+        res.status(500).set('Content-Type', 'text/plain').send('Error');
+      }
     }
   });
 
@@ -459,7 +480,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const ownerId = req.body.owner || req.userId;
 
       if (value === undefined || value === null) {
-        return res.status(400).json({ error: 'Value is required' });
+        const wantsJson = req.headers.accept?.includes('application/json') || req.query.format === 'json';
+        if (wantsJson) {
+          return res.status(400).json({ error: 'Value is required' });
+        } else {
+          return res.status(400).set('Content-Type', 'text/plain').send('Error: Value is required');
+        }
       }
 
       const variableValue = await storage.setVariableValue({
@@ -474,19 +500,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         owner: variableValue.ownerId
       });
 
-      res.json({
-        success: true,
-        data: {
-          name: definition.name,
-          type: definition.type,
-          value: variableValue.value,
-          owner: variableValue.ownerId,
-          updatedAt: variableValue.updatedAt
-        }
-      });
+      // Check if request wants JSON response (for dashboard/API explorer)
+      // Default to text/plain for Resonite unless explicitly requesting JSON
+      const wantsJson = req.headers.accept?.includes('application/json') || 
+                       req.query.format === 'json' ||
+                       req.headers['x-requested-with'] === 'XMLHttpRequest';
+      
+      if (wantsJson) {
+        res.json({
+          success: true,
+          data: {
+            name: definition.name,
+            type: definition.type,
+            value: variableValue.value,
+            owner: variableValue.ownerId,
+            updatedAt: variableValue.updatedAt
+          }
+        });
+      } else {
+        // Return success message for Resonite webhooks
+        res.set('Content-Type', 'text/plain').send('OK');
+      }
     } catch (error) {
       console.error('Set variable error:', error);
-      res.status(500).json({ error: 'Failed to set variable value' });
+      const wantsJson = req.headers.accept?.includes('application/json') || req.query.format === 'json';
+      if (wantsJson) {
+        res.status(500).json({ error: 'Failed to set variable value' });
+      } else {
+        res.status(500).set('Content-Type', 'text/plain').send('Error');
+      }
     }
   });
 
