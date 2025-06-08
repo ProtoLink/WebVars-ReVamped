@@ -237,11 +237,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allDefinitions = await storage.getVariableDefinitions();
       
       // Filter based on list permissions following Resonite pattern:
-      // - Show global variables (system-owned) with "anyone" list permission
+      // - Show global variables with "anyone" list permission (regardless of owner)
       // - Show user's own private variables with "definition_owner" permission
       const visibleDefinitions = allDefinitions.filter(def => {
-        // Global variables with public list permission
-        if (def.ownerId === "system" && def.listPermission === "anyone") {
+        // Global variables with "anyone" list permission (visible to all)
+        if (def.listPermission === "anyone") {
           return true;
         }
         // User's own private variables

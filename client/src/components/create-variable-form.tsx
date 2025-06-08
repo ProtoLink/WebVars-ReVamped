@@ -35,13 +35,13 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
 
   const handleFormSubmit = async (data: FormData) => {
     try {
-      // Set permissions based on scope
+      // Set permissions based on scope to match demo data patterns
       const isGlobal = data.scope === "global";
       const formData = {
         ...data,
         ownerType: "user",
         readPermission: isGlobal ? "anyone" : "variable_owner",
-        writePermission: isGlobal ? "anyone" : "variable_owner",
+        writePermission: isGlobal ? "variable_owner" : "variable_owner",
         listPermission: isGlobal ? "anyone" : "definition_owner",
       };
       await onSubmit(formData);
