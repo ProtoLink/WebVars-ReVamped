@@ -342,7 +342,6 @@ interface CreateVariableFormProps {
 export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormProps) {
   const [selectedType, setSelectedType] = useState<string>("string");
   const [selectedEnumType, setSelectedEnumType] = useState<string>("");
-  const [selectedEnumValue, setSelectedEnumValue] = useState<string>("");
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -495,67 +494,42 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
         />
 
         {selectedType === 'enum' && (
-          <>
-            <FormField
-              control={form.control}
-              name="enumType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Enum Category</FormLabel>
-                  <Select 
-                    value={field.value} 
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      setSelectedEnumType(value);
-                      setSelectedEnumValue('');
-                      form.setValue('defaultValue', '');
-                    }}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select enum category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="max-h-80">
-                      {getEnumCategories().map((enumType) => (
-                        <SelectItem key={enumType} value={enumType}>
-                          {enumType}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {selectedEnumType && (
-              <div className="space-y-2">
-                <Label>Available Enum Values</Label>
+          <FormField
+            control={form.control}
+            name="enumType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Enum Category</FormLabel>
                 <Select 
-                  value={selectedEnumValue} 
+                  value={field.value} 
                   onValueChange={(value) => {
-                    setSelectedEnumValue(value);
-                    form.setValue('defaultValue', value);
+                    field.onChange(value);
+                    setSelectedEnumType(value);
+                    form.setValue('defaultValue', '');
                   }}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select specific enum value (optional)" />
-                  </SelectTrigger>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select enum category" />
+                    </SelectTrigger>
+                  </FormControl>
                   <SelectContent className="max-h-80">
-                    {getEnumValues(selectedEnumType as any).map((enumValue) => (
-                      <SelectItem key={enumValue} value={enumValue}>
-                        {enumValue}
+                    {getEnumCategories().map((enumType) => (
+                      <SelectItem key={enumType} value={enumType}>
+                        {enumType}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">
-                  {getEnumValues(selectedEnumType as any).length} values available in {selectedEnumType}
-                </p>
-              </div>
+                <FormMessage />
+                {selectedEnumType && (
+                  <p className="text-xs text-muted-foreground">
+                    {getEnumValues(selectedEnumType as any).length} values available in {selectedEnumType}
+                  </p>
+                )}
+              </FormItem>
             )}
-          </>
+          />
         )}
 
         <FormField
