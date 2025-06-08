@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -315,6 +315,12 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
           <DialogTitle>
             {mode === 'edit' ? 'Edit' : 'View'} Variable: {variable.name}
           </DialogTitle>
+          <DialogDescription>
+            {mode === 'edit' 
+              ? `Modify the value and settings for the ${variable.type} variable "${variable.name}".`
+              : `View the current value and settings for the ${variable.type} variable "${variable.name}".`
+            }
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">
