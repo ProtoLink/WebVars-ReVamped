@@ -275,6 +275,7 @@ interface VariableDefinition {
   readPermission: string;
   writePermission: string;
   listPermission: string;
+  readOnly: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -289,6 +290,7 @@ interface VariableEditorProps {
 export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEditorProps) {
   const [value, setValue] = useState('');
   const [isLoadingValue, setIsLoadingValue] = useState(false);
+  const [readOnly, setReadOnly] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 

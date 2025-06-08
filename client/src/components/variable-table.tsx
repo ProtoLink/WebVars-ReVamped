@@ -21,6 +21,7 @@ interface VariableDefinition {
   readPermission: string;
   writePermission: string;
   listPermission: string;
+  readOnly: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -171,6 +172,11 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                         {variable.ownerId === userId && (
                           <Badge variant="outline" className="text-xs bg-yellow-50 border-yellow-200 text-yellow-800">
                             Owner
+                          </Badge>
+                        )}
+                        {variable.readOnly && (
+                          <Badge variant="outline" className="text-xs bg-red-50 border-red-200 text-red-800">
+                            Read-Only
                           </Badge>
                         )}
                       </div>
