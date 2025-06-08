@@ -225,29 +225,29 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      {/* Header */}
-      <div className="border-b bg-white dark:bg-slate-800 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+      {/* Mobile Header */}
+      <div className="border-b bg-white dark:bg-slate-800 px-4 py-3 lg:px-6 lg:py-4">
+        <div className="flex flex-col space-y-3 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+          <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Cloud className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Variable Sync</h1>
+              <Cloud className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
+              <h1 className="text-lg lg:text-2xl font-bold text-slate-900 dark:text-white">Variable Sync</h1>
             </div>
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
+            <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
               <div className={`mr-1 h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
               {isConnected ? 'Connected' : 'Disconnected'}
             </Badge>
           </div>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
             <div className="flex items-center space-x-2">
-              <Label htmlFor="userId" className="text-sm font-medium">User ID:</Label>
+              <Label htmlFor="userId" className="text-sm font-medium whitespace-nowrap">User ID:</Label>
               <Input
                 id="userId"
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
                 placeholder="Enter user ID"
-                className="w-32"
+                className="flex-1 sm:w-32"
               />
             </div>
             
@@ -256,6 +256,7 @@ export default function Dashboard() {
               disabled={createDemoDataMutation.isPending}
               variant="outline"
               size="sm"
+              className="w-full sm:w-auto"
             >
               {createDemoDataMutation.isPending ? (
                 <LoadingSpinner size="sm" />
@@ -270,9 +271,29 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="flex">
-        {/* Sidebar */}
-        <div className="w-64 bg-white dark:bg-slate-800 border-r h-[calc(100vh-73px)] p-6">
+      {/* Mobile Navigation Tabs */}
+      <div className="lg:hidden bg-white dark:bg-slate-800 border-b overflow-x-auto">
+        <nav className="flex space-x-1 px-4 py-2">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                activeTab === item.id
+                  ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20"
+                  : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
+              }`}
+            >
+              <item.icon className="h-4 w-4" />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      <div className="lg:flex">
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:block lg:w-64 bg-white dark:bg-slate-800 border-r h-[calc(100vh-73px)] p-6">
           <nav className="space-y-2">
             {navItems.map((item) => (
               <button
@@ -292,37 +313,36 @@ export default function Dashboard() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-4 lg:p-6">
           {activeTab === "dashboard" && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
-                  <p className="text-slate-600 dark:text-slate-400">
-                    Monitor your cloud variables and API activity for user: <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">{userId}</span>
-                  </p>
-                </div>
+            <div className="space-y-4 lg:space-y-6">
+              <div>
+                <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
+                <p className="text-sm lg:text-base text-slate-600 dark:text-slate-400 mt-1">
+                  Monitor your cloud variables and API activity for user: 
+                  <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-xs lg:text-sm ml-1">{userId}</span>
+                </p>
               </div>
 
               <StatsCards stats={stats} />
 
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center space-x-2 text-lg">
                     <BarChart className="h-5 w-5" />
                     <span>System Status</span>
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-sm">
                     Real-time connection and API health monitoring
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
                     <div className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                       <div className={`h-3 w-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
                       <div>
-                        <p className="font-medium">WebSocket</p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                        <p className="font-medium text-sm">WebSocket</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">
                           {isConnected ? 'Connected' : 'Disconnected'}
                         </p>
                       </div>
@@ -330,17 +350,17 @@ export default function Dashboard() {
                     <div className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                       <Database className="h-5 w-5 text-blue-500" />
                       <div>
-                        <p className="font-medium">Database</p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                        <p className="font-medium text-sm">Database</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">
                           {variables.length} definitions
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                    <div className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg sm:col-span-2 lg:col-span-1">
                       <User className="h-5 w-5 text-purple-500" />
                       <div>
-                        <p className="font-medium">Current User</p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 font-mono">
+                        <p className="font-medium text-sm">Current User</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 font-mono">
                           {userId}
                         </p>
                       </div>
@@ -352,22 +372,23 @@ export default function Dashboard() {
           )}
 
           {activeTab === "variables" && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
+            <div className="space-y-4 lg:space-y-6">
+              <div className="flex flex-col space-y-3 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
                 <div>
-                  <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Variables</h1>
-                  <p className="text-slate-600 dark:text-slate-400">
-                    Manage your cloud variable definitions for user: <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">{userId}</span>
+                  <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">Variables</h1>
+                  <p className="text-sm lg:text-base text-slate-600 dark:text-slate-400 mt-1">
+                    Manage your cloud variable definitions for user: 
+                    <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-xs lg:text-sm ml-1">{userId}</span>
                   </p>
                 </div>
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button>
+                    <Button className="w-full sm:w-auto">
                       <Plus className="h-4 w-4 mr-2" />
                       New Variable
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-[600px]">
+                  <DialogContent className="mx-4 sm:mx-0 sm:max-w-[600px]">
                     <DialogHeader>
                       <DialogTitle>Create Variable Definition</DialogTitle>
                       <DialogDescription>
@@ -399,11 +420,12 @@ export default function Dashboard() {
           )}
 
           {activeTab === "api-explorer" && (
-            <div className="space-y-6">
+            <div className="space-y-4 lg:space-y-6">
               <div>
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">API Explorer</h1>
-                <p className="text-slate-600 dark:text-slate-400">
-                  Test API endpoints and explore variable operations for user: <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">{userId}</span>
+                <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">API Explorer</h1>
+                <p className="text-sm lg:text-base text-slate-600 dark:text-slate-400 mt-1">
+                  Test API endpoints and explore variable operations for user: 
+                  <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-xs lg:text-sm ml-1">{userId}</span>
                 </p>
               </div>
               
@@ -412,52 +434,52 @@ export default function Dashboard() {
           )}
 
           {activeTab === "documentation" && (
-            <div className="space-y-6">
+            <div className="space-y-4 lg:space-y-6">
               <div>
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Documentation</h1>
-                <p className="text-slate-600 dark:text-slate-400">
+                <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">Documentation</h1>
+                <p className="text-sm lg:text-base text-slate-600 dark:text-slate-400 mt-1">
                   Learn how to integrate with the Variable Sync API
                 </p>
               </div>
               
               <Card>
-                <CardHeader>
-                  <CardTitle>Getting Started</CardTitle>
-                  <CardDescription>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Getting Started</CardTitle>
+                  <CardDescription className="text-sm">
                     Quick guide to using the Variable Sync API
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <h3 className="font-semibold mb-2">API Base URL</h3>
-                    <code className="bg-slate-100 dark:bg-slate-800 p-2 rounded block">
+                    <h3 className="font-semibold mb-2 text-sm lg:text-base">API Base URL</h3>
+                    <code className="bg-slate-100 dark:bg-slate-800 p-2 rounded block text-xs lg:text-sm overflow-x-auto">
                       {window.location.origin}/api/v1
                     </code>
                   </div>
                   
                   <div>
-                    <h3 className="font-semibold mb-2">Authentication</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                    <h3 className="font-semibold mb-2 text-sm lg:text-base">Authentication</h3>
+                    <p className="text-xs lg:text-sm text-slate-600 dark:text-slate-400 mb-2">
                       All API requests require a userId parameter:
                     </p>
-                    <code className="bg-slate-100 dark:bg-slate-800 p-2 rounded block">
+                    <code className="bg-slate-100 dark:bg-slate-800 p-2 rounded block text-xs lg:text-sm overflow-x-auto">
                       {`GET /api/v1/variables/player_score?userId=${userId}`}
                     </code>
                   </div>
                   
                   <div>
-                    <h3 className="font-semibold mb-2">Example: Get Variable Value</h3>
-                    <code className="bg-slate-100 dark:bg-slate-800 p-2 rounded block">
+                    <h3 className="font-semibold mb-2 text-sm lg:text-base">Example: Get Variable Value</h3>
+                    <code className="bg-slate-100 dark:bg-slate-800 p-2 rounded block text-xs lg:text-sm overflow-x-auto">
                       {`curl -X GET "${window.location.origin}/api/v1/variables/player_score?userId=${userId}"`}
                     </code>
                   </div>
                   
                   <div>
-                    <h3 className="font-semibold mb-2">Example: Set Variable Value</h3>
-                    <code className="bg-slate-100 dark:bg-slate-800 p-2 rounded block text-xs">
+                    <h3 className="font-semibold mb-2 text-sm lg:text-base">Example: Set Variable Value</h3>
+                    <code className="bg-slate-100 dark:bg-slate-800 p-2 rounded block text-xs overflow-x-auto">
                       <div>{`curl -X POST "${window.location.origin}/api/v1/variables/player_score?userId=${userId}" \\`}</div>
-                      <div>&nbsp;&nbsp;-H "Content-Type: application/json" \</div>
-                      <div>&nbsp;&nbsp;-d '{"{"}"value": "1500"{"}"}'</div>
+                      <div className="mt-1">&nbsp;&nbsp;-H "Content-Type: application/json" \</div>
+                      <div className="mt-1">&nbsp;&nbsp;-d '{"{"}"value": "1500"{"}"}'</div>
                     </code>
                   </div>
                 </CardContent>

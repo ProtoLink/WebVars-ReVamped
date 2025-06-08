@@ -106,14 +106,14 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
+      <CardHeader className="pb-3">
+        <div className="flex flex-col space-y-3 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
           <div>
-            <CardTitle className="text-xl font-bold text-slate-900">Web Variables</CardTitle>
-            <p className="text-slate-600 text-sm mt-1">Manage your persistent variables and their permissions</p>
+            <CardTitle className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white">Web Variables</CardTitle>
+            <p className="text-slate-600 dark:text-slate-400 text-xs lg:text-sm mt-1">Manage your persistent variables and their permissions</p>
           </div>
-          <div className="flex items-center space-x-3">
-            <div className="relative flex-1 sm:flex-none">
+          <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
+            <div className="relative">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Search variables..."
@@ -134,7 +134,6 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                 <SelectItem value="bool">bool</SelectItem>
               </SelectContent>
             </Select>
-
           </div>
         </div>
       </CardHeader>
@@ -142,16 +141,16 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
         {/* Mobile Card Layout */}
         <div className="md:hidden">
           {filteredVariables.map((variable) => (
-            <div key={variable.id} className="border-b border-slate-200 last:border-b-0">
+            <div key={variable.id} className="border-b border-slate-200 dark:border-slate-700 last:border-b-0">
               <div className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
                       {getTypeIcon(variable.type)}
                     </div>
                     <div>
-                      <div className="font-medium text-slate-900 text-sm">{variable.name}</div>
-                      <div className="text-xs text-slate-600">{variable.ownerType}-owned</div>
+                      <div className="font-medium text-slate-900 dark:text-white text-sm">{variable.name}</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">{variable.ownerType}-owned</div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-1">
@@ -166,14 +165,14 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                 
                 <div className="space-y-2">
                   <div>
-                    <span className="text-xs font-medium text-slate-600">Value:</span>
-                    <code className="text-xs font-mono text-slate-700 ml-2 block mt-1 bg-slate-50 p-2 rounded">
+                    <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Value:</span>
+                    <code className="text-xs font-mono text-slate-700 dark:text-slate-300 ml-2 block mt-1 bg-slate-50 dark:bg-slate-800 p-2 rounded">
                       {variable.defaultValue || "null"}
                     </code>
                   </div>
                   
                   <div>
-                    <span className="text-xs font-medium text-slate-600">Permissions:</span>
+                    <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Permissions:</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {formatPermissions(variable.readPermission, variable.writePermission).map((perm, index) => (
                         <Badge key={index} className={`text-xs font-medium ${perm.color}`}>
@@ -184,7 +183,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-600">
+                    <span className="text-xs text-slate-600 dark:text-slate-400">
                       {formatDistanceToNow(new Date(variable.updatedAt), { addSuffix: true })}
                     </span>
                     <div className="flex items-center space-x-1">
@@ -201,7 +200,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                         variant="ghost"
                         size="sm"
                         onClick={() => onEdit(variable)}
-                        className="text-slate-400 hover:text-slate-600 h-8 w-8 p-0"
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 h-8 w-8 p-0"
                         title="Edit Variable"
                       >
                         <Edit className="h-3 w-3" />
@@ -210,7 +209,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                         variant="ghost"
                         size="sm"
                         onClick={() => onView(variable)}
-                        className="text-slate-400 hover:text-slate-600 h-8 w-8 p-0"
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 h-8 w-8 p-0"
                         title="View Variable"
                       >
                         <Eye className="h-3 w-3" />

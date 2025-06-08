@@ -47,29 +47,29 @@ export function StatsCards({ stats }: StatsCardsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
       {cards.map((card, index) => (
         <Card key={index}>
-          <CardContent className="p-6">
+          <CardContent className="p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600">{card.title}</p>
-                <p className="text-2xl font-bold text-slate-900">
+                <p className="text-xs lg:text-sm text-slate-600 dark:text-slate-400">{card.title}</p>
+                <p className="text-xl lg:text-2xl font-bold text-slate-900 dark:text-white">
                   {typeof card.value === 'number' ? card.value : card.value}
                 </p>
               </div>
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${card.iconBg}`}>
-                <card.icon className={`h-6 w-6 ${card.iconColor}`} />
+              <div className={`w-10 h-10 lg:w-12 lg:h-12 rounded-lg flex items-center justify-center ${card.iconBg}`}>
+                <card.icon className={`h-5 w-5 lg:h-6 lg:w-6 ${card.iconColor}`} />
               </div>
             </div>
-            <div className="flex items-center mt-4 text-sm">
+            <div className="flex items-center mt-3 lg:mt-4 text-xs lg:text-sm">
               {card.change.startsWith('+') ? (
                 <span className="text-green-600">{card.change}</span>
               ) : (
-                <span className="text-slate-600">{card.change}</span>
+                <span className="text-slate-600 dark:text-slate-400">{card.change}</span>
               )}
               {card.change.includes('%') && (
-                <span className="text-slate-600 ml-2">from last month</span>
+                <span className="text-slate-600 dark:text-slate-400 ml-2">from last month</span>
               )}
             </div>
           </CardContent>
