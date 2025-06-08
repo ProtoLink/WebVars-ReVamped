@@ -66,6 +66,7 @@ function useVariableValues(variables: VariableDefinition[], userId: string) {
     },
     enabled: variables.length > 0 && !!userId,
     refetchOnWindowFocus: false,
+    staleTime: 0, // Always refetch to get latest values
   });
 }
 
@@ -282,6 +283,11 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                           >
                             {variable.listPermission === "anyone" ? "Global" : "Private"}
                           </Badge>
+                          {variable.ownerId === userId && (
+                            <Badge variant="outline" className="text-xs">
+                              Owner
+                            </Badge>
+                          )}
                         </div>
                         <div className="text-xs text-slate-600 dark:text-slate-400">
                           {variable.listPermission === "anyone" ? "Accessible to all users" : "Only visible to owner"}
