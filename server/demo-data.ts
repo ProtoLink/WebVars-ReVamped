@@ -52,6 +52,36 @@ export async function createDemoData(userId: string) {
       readPermission: "private",
       writePermission: "owner",
       listPermission: "private"
+    },
+    {
+      name: "avatar_color",
+      type: "color",
+      defaultValue: "#4A90E2",
+      ownerId: userId,
+      ownerType: "user",
+      readPermission: "public",
+      writePermission: "owner",
+      listPermission: "public"
+    },
+    {
+      name: "player_position",
+      type: "float3",
+      defaultValue: "0.0,1.75,0.0",
+      ownerId: userId,
+      ownerType: "user",
+      readPermission: "public",
+      writePermission: "owner",
+      listPermission: "public"
+    },
+    {
+      name: "ui_anchor_point",
+      type: "float2",
+      defaultValue: "0.5,0.5",
+      ownerId: userId,
+      ownerType: "user",
+      readPermission: "public",
+      writePermission: "owner",
+      listPermission: "public"
     }
   ];
 

@@ -13,6 +13,7 @@ import { StatsCards } from "@/components/stats-cards";
 import { VariableTable } from "@/components/variable-table";
 import { CreateVariableForm } from "@/components/create-variable-form";
 import { ApiExplorer } from "@/components/api-explorer";
+import { VariableEditor } from "@/components/variable-editor";
 
 // Navigation items
 const navItems = [
@@ -25,6 +26,9 @@ const navItems = [
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [selectedVariable, setSelectedVariable] = useState<any>(null);
+  const [editorMode, setEditorMode] = useState<'edit' | 'view'>('view');
+  const [showEditor, setShowEditor] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -281,9 +285,21 @@ export default function Dashboard() {
               <div className="xl:col-span-2">
                 <VariableTable
                   variables={variables}
-                  onEdit={(variable) => console.log("Edit", variable)}
-                  onView={(variable) => console.log("View", variable)}
-                  onDelete={(variable) => console.log("Delete", variable)}
+                  onEdit={(variable) => {
+                    setSelectedVariable(variable);
+                    setEditorMode('edit');
+                    setShowEditor(true);
+                  }}
+                  onView={(variable) => {
+                    setSelectedVariable(variable);
+                    setEditorMode('view');
+                    setShowEditor(true);
+                  }}
+                  onDelete={(variable) => {
+                    setSelectedVariable(variable);
+                    setEditorMode('edit');
+                    setShowEditor(true);
+                  }}
                 />
               </div>
 
@@ -441,6 +457,14 @@ export default function Dashboard() {
             </Card>
           </div>
         )}
+
+        {/* Variable Editor Modal */}
+        <VariableEditor
+          variable={selectedVariable}
+          isOpen={showEditor}
+          onClose={() => setShowEditor(false)}
+          mode={editorMode}
+        />
       </div>
     </div>
   );
