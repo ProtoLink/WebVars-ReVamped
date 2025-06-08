@@ -9,9 +9,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { SUPPORTED_DATA_TYPES, PERMISSION_TYPES, RESONITE_ENUMS } from "@shared/schema";
+import { RESONITE_ENUM_VALUES, getEnumCategories, getEnumValues } from "@shared/resonite-enums";
 
 // Helper function to render smart input components based on data type
-const renderSmartInput = (type: string, value: string, onChange: (value: string) => void, placeholder?: string) => {
+const renderSmartInput = (type: string, value: string, onChange: (value: string) => void, placeholder?: string, enumType?: string) => {
+  // Handle enum type with specific enum values
+  if (type === 'enum' && enumType) {
+    const enumValues = getEnumValues(enumType as any);
+    return (
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger>
+          <SelectValue placeholder={placeholder || `Select ${enumType} value`} />
+        </SelectTrigger>
+        <SelectContent className="max-h-80">
+          {enumValues.map((enumValue) => (
+            <SelectItem key={enumValue} value={enumValue}>
+              {enumValue}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
+
   switch (type) {
     case 'bool':
       return (
@@ -322,6 +342,7 @@ interface CreateVariableFormProps {
 export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormProps) {
   const [selectedType, setSelectedType] = useState<string>("string");
   const [selectedEnumType, setSelectedEnumType] = useState<string>("");
+  const [selectedEnumValue, setSelectedEnumValue] = useState<string>("");
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -474,36 +495,67 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
         />
 
         {selectedType === 'enum' && (
-          <FormField
-            control={form.control}
-            name="enumType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Enum Type</FormLabel>
+          <>
+            <FormField
+              control={form.control}
+              name="enumType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Enum Category</FormLabel>
+                  <Select 
+                    value={field.value} 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      setSelectedEnumType(value);
+                      setSelectedEnumValue('');
+                      form.setValue('defaultValue', '');
+                    }}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select enum category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="max-h-80">
+                      {getEnumCategories().map((enumType) => (
+                        <SelectItem key={enumType} value={enumType}>
+                          {enumType}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {selectedEnumType && (
+              <div className="space-y-2">
+                <Label>Available Enum Values</Label>
                 <Select 
-                  value={field.value} 
+                  value={selectedEnumValue} 
                   onValueChange={(value) => {
-                    field.onChange(value);
-                    setSelectedEnumType(value);
+                    setSelectedEnumValue(value);
+                    form.setValue('defaultValue', value);
                   }}
                 >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select enum type" />
-                    </SelectTrigger>
-                  </FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select specific enum value (optional)" />
+                  </SelectTrigger>
                   <SelectContent className="max-h-80">
-                    {RESONITE_ENUMS.map((enumType) => (
-                      <SelectItem key={enumType} value={enumType}>
-                        {enumType}
+                    {getEnumValues(selectedEnumType as any).map((enumValue) => (
+                      <SelectItem key={enumValue} value={enumValue}>
+                        {enumValue}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <FormMessage />
-              </FormItem>
+                <p className="text-xs text-muted-foreground">
+                  {getEnumValues(selectedEnumType as any).length} values available in {selectedEnumType}
+                </p>
+              </div>
             )}
-          />
+          </>
         )}
 
         <FormField
@@ -546,12 +598,13 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
               <FormControl>
                 <div className="w-full">
                   {renderSmartInput(
-                    selectedType === 'enum' ? 'string' : selectedType,
+                    selectedType,
                     field.value || '',
                     field.onChange,
                     selectedType === 'enum' && selectedEnumType 
-                      ? `Enter ${selectedEnumType} enum value` 
-                      : `Enter ${selectedType} value`
+                      ? `Select ${selectedEnumType} enum value` 
+                      : `Enter ${selectedType} value`,
+                    selectedEnumType || undefined
                   )}
                 </div>
               </FormControl>

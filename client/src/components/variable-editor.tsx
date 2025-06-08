@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { getEnumValues } from "@shared/resonite-enums";
 
 // Helper function to render smart input components based on data type
 const renderSmartInput = (type: string, value: string, onChange: (value: string) => void, disabled: boolean) => {
