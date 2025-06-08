@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Settings, Eye, FileText, BarChart3, Cloud, Database, User, Key, Shield, Bell, Palette, Copy, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Settings, Eye, FileText, BarChart3, Cloud, Database, User, Key, Shield, Bell, Palette, Copy, Trash2, RefreshCw, Zap, Play, BarChart } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CardDescription } from "@/components/ui/card";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -40,6 +42,9 @@ export default function Dashboard() {
   const [newApiKeyName, setNewApiKeyName] = useState("");
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null);
   const [showNewKeyDialog, setShowNewKeyDialog] = useState(false);
+  const [selectedTestKey, setSelectedTestKey] = useState<string>("");
+  const [apiTestLoading, setApiTestLoading] = useState(false);
+  const [apiTestResult, setApiTestResult] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -218,6 +223,63 @@ export default function Dashboard() {
       });
     },
   });
+
+  // Test API endpoint with selected key
+  const testApiEndpoint = async (method: string, endpoint: string) => {
+    if (!selectedTestKey) return;
+    
+    setApiTestLoading(true);
+    setApiTestResult(null);
+    
+    try {
+      const selectedKey = apiKeys.find((key: any) => key.id.toString() === selectedTestKey);
+      if (!selectedKey) {
+        throw new Error('Selected API key not found');
+      }
+
+      // Test with query parameter (Resonite style)
+      const testUrl = `${endpoint}?key=${selectedKey.keyHash}`;
+      
+      const response = await fetch(testUrl, {
+        method,
+        credentials: 'include',
+      });
+      
+      const data = await response.json();
+      
+      setApiTestResult({
+        success: response.ok,
+        status: response.status,
+        data,
+        method,
+        endpoint: testUrl,
+        timestamp: new Date().toISOString()
+      });
+      
+      toast({
+        title: response.ok ? "Test Successful" : "Test Failed",
+        description: `${method} ${endpoint} - ${response.status}`,
+        variant: response.ok ? "default" : "destructive",
+      });
+      
+    } catch (error: any) {
+      setApiTestResult({
+        success: false,
+        error: error.message,
+        method,
+        endpoint,
+        timestamp: new Date().toISOString()
+      });
+      
+      toast({
+        title: "Test Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setApiTestLoading(false);
+    }
+  };
 
   // Handle API Explorer requests
   const handleApiRequest = async (request: any) => {
@@ -773,6 +835,85 @@ Content-Type: application/json`}
                       </div>
                     </DialogContent>
                   </Dialog>
+                </CardContent>
+              </Card>
+
+              {/* API Key Testing */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Zap className="h-5 w-5" />
+                    <span>API Testing</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Test your API keys with sample requests to verify Resonite compatibility
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {apiKeys.length > 0 ? (
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="testApiKey">Select API Key to Test</Label>
+                        <Select value={selectedTestKey} onValueChange={setSelectedTestKey}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose an API key" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {apiKeys.map((key: any) => (
+                              <SelectItem key={key.id} value={key.id.toString()}>
+                                {key.name} ({key.isActive ? 'Active' : 'Inactive'})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {selectedTestKey && (
+                        <div className="space-y-3 p-3 border border-slate-200 rounded-lg bg-slate-50">
+                          <div className="text-sm font-medium">Test Endpoints</div>
+                          <div className="grid grid-cols-1 gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => testApiEndpoint('GET', '/api/v1/definitions')}
+                              disabled={apiTestLoading}
+                            >
+                              {apiTestLoading ? <LoadingSpinner size="sm" className="mr-2" /> : <Play className="h-3 w-3 mr-2" />}
+                              Test List Variables
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => testApiEndpoint('GET', '/api/v1/stats')}
+                              disabled={apiTestLoading}
+                            >
+                              {apiTestLoading ? <LoadingSpinner size="sm" className="mr-2" /> : <BarChart className="h-3 w-3 mr-2" />}
+                              Test Statistics
+                            </Button>
+                          </div>
+                          
+                          {apiTestResult && (
+                            <div className="mt-3 p-2 bg-white rounded border text-xs">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-medium">Test Result:</span>
+                                <Badge variant={apiTestResult.success ? "default" : "destructive"}>
+                                  {apiTestResult.success ? "Success" : "Failed"}
+                                </Badge>
+                              </div>
+                              <pre className="whitespace-pre-wrap text-xs text-slate-600">
+                                {JSON.stringify(apiTestResult.data, null, 2)}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <Key className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+                      <p className="text-sm text-slate-600">Create an API key to test endpoints</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
