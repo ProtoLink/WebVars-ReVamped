@@ -58,15 +58,23 @@ export default function Dashboard() {
   // Fetch variable definitions
   const { data: variablesData, isLoading: variablesLoading } = useQuery({
     queryKey: ["/api/v1/definitions", { userId }],
-    queryFn: () => apiRequest("GET", `/api/v1/definitions?userId=${userId}`),
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/v1/definitions?userId=${userId}`);
+      return response.json();
+    },
     enabled: !!userId,
   });
 
   // Fetch statistics
   const { data: statsData } = useQuery({
     queryKey: ["/api/v1/stats", { userId }],
-    queryFn: () => apiRequest("GET", `/api/v1/stats?userId=${userId}`),
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/v1/stats?userId=${userId}`);
+      return response.json();
+    },
     enabled: !!userId,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: true,
   });
 
   // Handle WebSocket messages
@@ -77,8 +85,10 @@ export default function Dashboard() {
         case "definition_updated":
         case "definition_deleted":
           queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions", { userId }] });
+          queryClient.invalidateQueries({ queryKey: ["/api/v1/stats", { userId }] });
           break;
         case "variable_updated":
+          queryClient.invalidateQueries({ queryKey: ["/api/v1/stats", { userId }] });
           toast({
             title: "Variable Updated",
             description: `Variable ${lastMessage.data.name} was updated`,
@@ -228,8 +238,8 @@ export default function Dashboard() {
     setShowDeleteDialog(true);
   };
 
-  const variables = variablesData?.data || [];
-  const stats = statsData?.data || {
+  const variables = (variablesData as any)?.data || [];
+  const stats = (statsData as any)?.data || {
     totalVariables: 0,
     totalValues: 0,
     apiRequestsToday: 0,
@@ -409,7 +419,14 @@ export default function Dashboard() {
                       </DialogDescription>
                     </DialogHeader>
                     <CreateVariableForm
-                      onSubmit={(data) => createVariableMutation.mutate(data)}
+                      onSubmit={async (data) => {
+                        return new Promise<void>((resolve, reject) => {
+                          createVariableMutation.mutate(data, {
+                            onSuccess: () => resolve(),
+                            onError: (error) => reject(error)
+                          });
+                        });
+                      }}
                       isLoading={createVariableMutation.isPending}
                     />
                   </DialogContent>
