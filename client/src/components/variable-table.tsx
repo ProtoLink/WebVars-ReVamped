@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Eye, Trash2, Search, Database, Copy, Globe, Lock } from "lucide-react";
+import { Edit, Eye, Trash2, Search, Database, Copy, Globe, Lock, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 interface VariableDefinition {
   id: number;
@@ -23,6 +24,14 @@ interface VariableDefinition {
   updatedAt: string;
 }
 
+interface VariableValue {
+  name: string;
+  type: string;
+  value: string | null;
+  owner: string;
+  isDefault: boolean;
+}
+
 interface VariableTableProps {
   variables: VariableDefinition[];
   onEdit: (variable: VariableDefinition) => void;
@@ -31,9 +40,41 @@ interface VariableTableProps {
   userId?: string;
 }
 
+// Custom hook to fetch variable values for the current user
+function useVariableValues(variables: VariableDefinition[], userId: string) {
+  return useQuery({
+    queryKey: ['/api/v1/variable-values', userId, variables.map(v => v.name).sort()],
+    queryFn: async () => {
+      const values: Record<string, VariableValue> = {};
+      
+      // Fetch each variable's value for the current user
+      for (const variable of variables) {
+        try {
+          const response = await fetch(`/api/v1/variables/${variable.name}?userId=${userId}&format=json`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              values[variable.name] = data.data;
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to fetch value for ${variable.name}:`, error);
+        }
+      }
+      
+      return values;
+    },
+    enabled: variables.length > 0 && !!userId,
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function VariableTable({ variables, onEdit, onView, onDelete, userId = "user123" }: VariableTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
+  
+  // Fetch user-specific variable values
+  const { data: variableValues = {} } = useVariableValues(variables, userId);
 
   const filteredVariables = variables.filter(variable => {
     return variable.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -48,6 +89,21 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
       title: "API URL Copied",
       description: `URL for "${variable.name}" copied with userId: ${userId}`,
     });
+  };
+
+  // Helper function to get the display value for a variable
+  const getDisplayValue = (variable: VariableDefinition) => {
+    const userValue = variableValues[variable.name];
+    if (userValue && !userValue.isDefault) {
+      return {
+        value: userValue.value,
+        isUserSpecific: true
+      };
+    }
+    return {
+      value: variable.defaultValue,
+      isUserSpecific: false
+    };
   };
 
 
@@ -111,10 +167,32 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                 
                 <div className="space-y-2">
                   <div>
-                    <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Value:</span>
-                    <code className="text-xs font-mono text-slate-700 dark:text-slate-300 ml-2 block mt-1 bg-slate-50 dark:bg-slate-800 p-2 rounded">
-                      {variable.defaultValue || "null"}
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Value:</span>
+                      {(() => {
+                        const { isUserSpecific } = getDisplayValue(variable);
+                        return isUserSpecific && (
+                          <Badge variant="outline" className="text-xs px-1 py-0 h-4">
+                            <User className="h-2 w-2 mr-1" />
+                            Your Value
+                          </Badge>
+                        );
+                      })()}
+                    </div>
+                    <code className="text-xs font-mono text-slate-700 dark:text-slate-300 block bg-slate-50 dark:bg-slate-800 p-2 rounded">
+                      {(() => {
+                        const { value, isUserSpecific } = getDisplayValue(variable);
+                        return value || "null";
+                      })()}
                     </code>
+                    {(() => {
+                      const { isUserSpecific } = getDisplayValue(variable);
+                      return isUserSpecific && variable.defaultValue !== getDisplayValue(variable).value && (
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Default: <code className="font-mono">{variable.defaultValue || "null"}</code>
+                        </div>
+                      );
+                    })()}
                   </div>
                   
 
@@ -212,9 +290,33 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                     </div>
                   </TableCell>
                   <TableCell className="py-4 px-4 lg:px-6">
-                    <code className="text-xs font-mono text-slate-700 dark:text-slate-300 max-w-24 truncate block">
-                      {variable.defaultValue || "null"}
-                    </code>
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <code className="text-xs font-mono text-slate-700 dark:text-slate-300 max-w-24 truncate block">
+                          {(() => {
+                            const { value } = getDisplayValue(variable);
+                            return value || "null";
+                          })()}
+                        </code>
+                        {(() => {
+                          const { isUserSpecific } = getDisplayValue(variable);
+                          return isUserSpecific && (
+                            <Badge variant="outline" className="text-xs px-1 py-0 h-4">
+                              <User className="h-2 w-2 mr-1" />
+                              Your Value
+                            </Badge>
+                          );
+                        })()}
+                      </div>
+                      {(() => {
+                        const { isUserSpecific } = getDisplayValue(variable);
+                        return isUserSpecific && variable.defaultValue !== getDisplayValue(variable).value && (
+                          <div className="text-xs text-slate-500 dark:text-slate-400">
+                            Default: <code className="font-mono">{variable.defaultValue || "null"}</code>
+                          </div>
+                        );
+                      })()}
+                    </div>
                   </TableCell>
                   <TableCell className="py-4 px-4 lg:px-6 text-xs text-slate-600 dark:text-slate-400">
                     {formatDistanceToNow(new Date(variable.updatedAt), { addSuffix: true })}
