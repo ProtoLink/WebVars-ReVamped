@@ -159,6 +159,8 @@ GET /api/v1/variables/{name}?userId=YOUR_USER_ID
 ```
 
 #### Set Variable Value
+
+**JSON Format (Dashboard/API Integration):**
 ```http
 POST /api/v1/variables/{name}
 Authorization: Bearer YOUR_API_KEY
@@ -177,6 +179,30 @@ Content-Type: application/json
   "value": "2500"
 }
 ```
+
+**Plain Text Format (Resonite Integration):**
+```http
+POST /api/v1/variables/{name}
+Authorization: Bearer YOUR_API_KEY
+Content-Type: text/plain
+```
+
+**Alternative Authentication (Unsafe Variables):**
+```http
+POST /api/v1/variables/{name}?userId=YOUR_USER_ID
+Content-Type: text/plain
+```
+
+**Request Body:**
+```
+2500
+```
+
+**For Enum Variables (Plain Text):**
+```
+1
+```
+*Note: Use numerical index (0, 1, 2...) which gets converted to enum name automatically*
 
 **Response Formats:**
 
@@ -404,18 +430,49 @@ def set_variable(name, value):
     return response.json()
 ```
 
-### cURL
+### cURL Examples
+
+#### Get Variable Value
 ```bash
-# Get variable
+# Get variable (returns enum as numerical index for text/plain)
 curl -H "Authorization: Bearer wv_your_api_key_here" \
      https://your-deployment.replit.app/api/v1/variables/player_score
 
-# Set variable
+# Get variable with userId (unsafe authentication)
+curl "https://your-deployment.replit.app/api/v1/variables/player_score?userId=Tacusin"
+```
+
+#### Set Variable Value - JSON Format
+```bash
+# Set variable with JSON
 curl -X POST \
      -H "Authorization: Bearer wv_your_api_key_here" \
      -H "Content-Type: application/json" \
      -d '{"value":"2500"}' \
      https://your-deployment.replit.app/api/v1/variables/player_score
+
+# Set variable with userId and JSON
+curl -X POST "https://your-deployment.replit.app/api/v1/variables/player_score?userId=Tacusin" \
+     -H "Content-Type: application/json" \
+     -d '{"value": "1500"}'
+```
+
+#### Set Variable Value - Plain Text Format (Resonite)
+```bash
+# Set variable with plain text
+curl -X POST \
+     -H "Authorization: Bearer wv_your_api_key_here" \
+     -H "Content-Type: text/plain" \
+     -d "2500" \
+     https://your-deployment.replit.app/api/v1/variables/player_score
+
+# Set variable with userId and plain text (Resonite style)
+curl -X POST "https://your-deployment.replit.app/api/v1/variables/player_score?userId=Tacusin" \
+     -d "1500"
+
+# Set enum variable with numerical index (converts to enum name)
+curl -X POST "https://your-deployment.replit.app/api/v1/variables/blend_mode?userId=Tacusin" \
+     -d "2"
 ```
 
 ## Resonite Integration
@@ -423,15 +480,43 @@ curl -X POST \
 ### ProtoFlux Nodes
 Web Variables can be accessed from within Resonite using standard ProtoFlux nodes:
 
-- **GET_String**: Retrieve string variable values
-- **POST_String**: Update string variable values
+- **GET_String**: Retrieve variable values (enums return as numerical indices)
+- **POST_String**: Update variable values (enums accept numerical indices)
 - **Variable_Read**: Read typed variable values
 - **Variable_Write**: Write typed variable values
 
 ### URL Format for Resonite
 ```
-https://your-deployment.replit.app/api/v1/variables/{variable_name}
+https://your-deployment.replit.app/api/v1/variables/{variable_name}?userId={your_user_id}
 ```
+
+### Enum Handling
+When working with enum variables in Resonite:
+
+**GET Requests:** Return numerical index (0, 1, 2...) instead of enum name
+```bash
+# Example: BlendMode enum with value "Additive" (index 4) returns "4"
+curl "https://your-deployment.replit.app/api/v1/variables/blend_mode?userId=Tacusin"
+# Response: 4
+```
+
+**POST Requests:** Accept numerical index and convert to enum name automatically
+```bash
+# Example: Send "2" to set BlendMode to "Fade" (third enum value)
+curl -X POST "https://your-deployment.replit.app/api/v1/variables/blend_mode?userId=Tacusin" -d "2"
+# Stores "Fade" in database, returns "OK"
+```
+
+### Supported Resonite Data Types
+- **Basic:** string, bool, char, int, uint, long, ulong, short, ushort, byte, sbyte
+- **Float:** half, float, double, decimal
+- **Vectors:** bool2-4, int2-4, uint2-4, long2-4, ulong2-4, float2-4, double2-4
+- **Matrices:** float2x2, float3x3, float4x4, double2x2, double3x3, double4x4
+- **Quaternions:** floatQ, doubleQ
+- **Colors:** color, colorX
+- **Time:** datetime, timespan
+- **Other:** uri, refID
+- **Enums:** 50+ categories including BlendMode, AudioRolloffMode, LightType, etc.
 
 ### Headers for Resonite HTTP Requests
 ```

@@ -25,6 +25,7 @@ export function ApiExplorer({ onSendRequest }: ApiExplorerProps) {
   const [method, setMethod] = useState("GET");
   const [endpoint, setEndpoint] = useState("/api/v1/variables/{name}");
   const [requestBody, setRequestBody] = useState('{\n  "value": "Hello World"\n}');
+  const [contentType, setContentType] = useState("application/json");
   const [response, setResponse] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -34,7 +35,7 @@ export function ApiExplorer({ onSendRequest }: ApiExplorerProps) {
       const result = await onSendRequest({
         method,
         endpoint,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": contentType },
         body: method !== "GET" ? requestBody : undefined,
       });
 
@@ -120,15 +121,47 @@ export function ApiExplorer({ onSendRequest }: ApiExplorerProps) {
               </div>
 
               {method !== "GET" && (
-                <div>
-                  <Label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Request Body</Label>
-                  <Textarea
-                    value={requestBody}
-                    onChange={(e) => setRequestBody(e.target.value)}
-                    placeholder='{\n  "value": "Hello World"\n}'
-                    className="min-h-24 font-mono text-sm"
-                  />
-                </div>
+                <>
+                  <div>
+                    <Label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Content Type</Label>
+                    <Select value={contentType} onValueChange={(value) => {
+                      setContentType(value);
+                      if (value === "application/json") {
+                        setRequestBody('{\n  "value": "Hello World"\n}');
+                      } else {
+                        setRequestBody('Hello World');
+                      }
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="application/json">JSON (application/json)</SelectItem>
+                        <SelectItem value="text/plain">Plain Text (text/plain)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Request Body
+                      <span className="text-xs text-slate-500 ml-2">
+                        {contentType === "application/json" ? "JSON format" : "Raw text for Resonite"}
+                      </span>
+                    </Label>
+                    <Textarea
+                      value={requestBody}
+                      onChange={(e) => setRequestBody(e.target.value)}
+                      placeholder={contentType === "application/json" ? '{\n  "value": "Hello World"\n}' : 'Hello World'}
+                      className="min-h-24 font-mono text-sm"
+                    />
+                    {contentType === "text/plain" && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        For enums: Use numerical index (0, 1, 2...) which will be converted to enum names automatically
+                      </p>
+                    )}
+                  </div>
+                </>
               )}
 
               <Button
