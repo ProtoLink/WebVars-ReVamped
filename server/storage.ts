@@ -21,6 +21,7 @@ import {
 import { db } from "./db";
 import { eq, and, desc, like, count } from "drizzle-orm";
 import crypto from "crypto";
+import bcrypt from "bcrypt";
 
 export interface IStorage {
   // User operations
