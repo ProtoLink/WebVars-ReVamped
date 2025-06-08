@@ -4,10 +4,15 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 const formSchema = z.object({
   name: z.string().min(1, "Variable name is required").regex(/^[a-zA-Z0-9._-]+$/, "Invalid variable name format"),
   defaultValue: z.string().optional(),
+  scope: z.enum(["private", "global"]),
+  type: z.string().min(1, "Variable type is required"),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -23,19 +28,21 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
     defaultValues: {
       name: "",
       defaultValue: "",
+      scope: "private",
+      type: "string",
     },
   });
 
   const handleFormSubmit = async (data: FormData) => {
     try {
-      // Add default values for required backend fields
+      // Set permissions based on scope
+      const isGlobal = data.scope === "global";
       const formData = {
         ...data,
-        type: "string",
         ownerType: "user",
-        readPermission: "variable_owner",
-        writePermission: "variable_owner",
-        listPermission: "definition_owner",
+        readPermission: isGlobal ? "public" : "variable_owner",
+        writePermission: isGlobal ? "public" : "variable_owner",
+        listPermission: isGlobal ? "public" : "definition_owner",
       };
       await onSubmit(formData);
       form.reset();
@@ -59,6 +66,61 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
                   {...field} 
                   className="w-full"
                 />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Variable Type</FormLabel>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select variable type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="string">String</SelectItem>
+                  <SelectItem value="number">Number</SelectItem>
+                  <SelectItem value="boolean">Boolean</SelectItem>
+                  <SelectItem value="json">JSON</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="scope"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel>Variable Scope</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  className="flex flex-col space-y-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="private" id="private" />
+                    <Label htmlFor="private" className="text-sm font-normal">
+                      Private - Only you can access this variable
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="global" id="global" />
+                    <Label htmlFor="global" className="text-sm font-normal">
+                      Global - Anyone can read and write this variable
+                    </Label>
+                  </div>
+                </RadioGroup>
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -3,10 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Play } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface ApiExplorerProps {
   onSendRequest: (request: {
@@ -25,28 +24,17 @@ interface ApiExplorerProps {
 export function ApiExplorer({ onSendRequest }: ApiExplorerProps) {
   const [method, setMethod] = useState("GET");
   const [endpoint, setEndpoint] = useState("/api/v1/variables/{name}");
-  const [headers, setHeaders] = useState([
-    { key: "Authorization", value: "Bearer your-api-key" },
-    { key: "Content-Type", value: "application/json" },
-  ]);
-  const [requestBody, setRequestBody] = useState('{\n  "value": "Hello World",\n  "type": "string"\n}');
+  const [requestBody, setRequestBody] = useState('{\n  "value": "Hello World"\n}');
   const [response, setResponse] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSendRequest = async () => {
     setIsLoading(true);
     try {
-      const headerObj = headers.reduce((acc, header) => {
-        if (header.key && header.value) {
-          acc[header.key] = header.value;
-        }
-        return acc;
-      }, {} as Record<string, string>);
-
       const result = await onSendRequest({
         method,
         endpoint,
-        headers: headerObj,
+        headers: { "Content-Type": "application/json" },
         body: method !== "GET" ? requestBody : undefined,
       });
 
@@ -54,7 +42,7 @@ export function ApiExplorer({ onSendRequest }: ApiExplorerProps) {
     } catch (error) {
       setResponse({
         status: 0,
-        statusText: "Error",
+        statusText: "Network Error",
         data: { error: error instanceof Error ? error.message : "Unknown error" },
         responseTime: 0,
       });
@@ -63,28 +51,18 @@ export function ApiExplorer({ onSendRequest }: ApiExplorerProps) {
     }
   };
 
-  const updateHeader = (index: number, key: string, value: string) => {
-    const newHeaders = [...headers];
-    newHeaders[index] = { key, value };
-    setHeaders(newHeaders);
-  };
-
-  const addHeader = () => {
-    setHeaders([...headers, { key: "", value: "" }]);
-  };
-
   const getMethodColor = (method: string) => {
     switch (method) {
       case "GET":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
       case "POST":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
       case "PUT":
-        return "bg-amber-100 text-amber-800";
+        return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200";
       case "DELETE":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
       default:
-        return "bg-slate-100 text-slate-800";
+        return "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200";
     }
   };
 
@@ -128,58 +106,52 @@ export function ApiExplorer({ onSendRequest }: ApiExplorerProps) {
               </div>
 
               <div>
-                <Label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Headers</Label>
-                <div className="space-y-2">
-                  {headers.map((header, index) => (
-                    <div key={index} className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                      <Input
-                        value={header.key}
-                        onChange={(e) => updateHeader(index, e.target.value, header.value)}
-                        placeholder="Header name"
-                        className="flex-1"
-                      />
-                      <Input
-                        value={header.value}
-                        onChange={(e) => updateHeader(index, header.key, e.target.value)}
-                        placeholder="Header value"
-                        className="flex-1"
-                      />
-                    </div>
-                  ))}
-                  <Button variant="outline" size="sm" onClick={addHeader} className="w-full sm:w-auto">
-                    Add Header
-                  </Button>
+                <Label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Global Variables</Label>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+                  Test endpoints for accessing and managing global variables that are publicly accessible.
+                </p>
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-md p-3 text-xs">
+                  <p className="font-medium mb-1">Example endpoints:</p>
+                  <ul className="space-y-1 text-slate-600 dark:text-slate-400">
+                    <li>• GET /api/v1/variables/{`{name}`} - Get variable value</li>
+                    <li>• POST /api/v1/variables/{`{name}`} - Set variable value</li>
+                  </ul>
                 </div>
               </div>
 
               {method !== "GET" && (
                 <div>
-                  <Label className="block text-sm font-medium text-slate-700 mb-2">Request Body</Label>
+                  <Label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Request Body</Label>
                   <Textarea
                     value={requestBody}
                     onChange={(e) => setRequestBody(e.target.value)}
-                    placeholder='{\n  "value": "Hello World",\n  "type": "string"\n}'
-                    className="font-mono text-sm"
-                    rows={8}
+                    placeholder='{\n  "value": "Hello World"\n}'
+                    className="min-h-24 font-mono text-sm"
                   />
                 </div>
               )}
 
-              <Button 
-                onClick={handleSendRequest} 
+              <Button
+                onClick={handleSendRequest}
                 disabled={isLoading}
-                className="w-full bg-resonite-600 text-white hover:bg-resonite-700"
+                className={`w-full ${getMethodColor(method)} font-medium`}
               >
-                <Play className="w-4 h-4 mr-2" />
-                {isLoading ? "Sending..." : "Send Request"}
+                {isLoading ? (
+                  <>
+                    <LoadingSpinner size="sm" className="mr-2" />
+                    Sending...
+                  </>
+                ) : (
+                  `Send ${method} Request`
+                )}
               </Button>
             </div>
           </div>
 
           {/* Response Viewer */}
           <div>
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Response</h3>
-            <div className="bg-slate-900 rounded-lg p-4 text-sm font-mono text-green-400 min-h-96">
+            <h3 className="text-base lg:text-lg font-semibold text-slate-900 dark:text-white mb-3 lg:mb-4">Response</h3>
+            <div className="bg-slate-900 dark:bg-slate-950 rounded-lg p-4 text-sm font-mono text-green-400 min-h-96">
               {response ? (
                 <>
                   <div className="flex items-center justify-between mb-3">
