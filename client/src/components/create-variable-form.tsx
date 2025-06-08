@@ -757,6 +757,380 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
           />
         );
 
+      case 'long':
+        return (
+          <Input
+            type="number"
+            step="1"
+            value={defaultValue}
+            onChange={(e) => setDefaultValue(e.target.value)}
+            placeholder="e.g., 9223372036854775807"
+          />
+        );
+
+      case 'long2':
+        const long2Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => parseInt(p.trim()));
+              return { x: parts[0] || 0, y: parts[1] || 0 };
+            }
+            return JSON.parse(defaultValue || '{"x":0,"y":0}');
+          } catch {
+            return { x: 0, y: 0 };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">Long2 (X, Y)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">X</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={long2Val.x}
+                  onChange={(e) => {
+                    const newVal = { ...long2Val, x: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Y</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={long2Val.y}
+                  onChange={(e) => {
+                    const newVal = { ...long2Val, y: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'long3':
+        const long3Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => parseInt(p.trim()));
+              return { x: parts[0] || 0, y: parts[1] || 0, z: parts[2] || 0 };
+            }
+            return JSON.parse(defaultValue || '{"x":0,"y":0,"z":0}');
+          } catch {
+            return { x: 0, y: 0, z: 0 };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">Long3 (X, Y, Z)</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs">X</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={long3Val.x}
+                  onChange={(e) => {
+                    const newVal = { ...long3Val, x: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Y</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={long3Val.y}
+                  onChange={(e) => {
+                    const newVal = { ...long3Val, y: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Z</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={long3Val.z}
+                  onChange={(e) => {
+                    const newVal = { ...long3Val, z: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'long4':
+        const long4Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => parseInt(p.trim()));
+              return { x: parts[0] || 0, y: parts[1] || 0, z: parts[2] || 0, w: parts[3] || 0 };
+            }
+            return JSON.parse(defaultValue || '{"x":0,"y":0,"z":0,"w":0}');
+          } catch {
+            return { x: 0, y: 0, z: 0, w: 0 };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">Long4 (X, Y, Z, W)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">X</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={long4Val.x}
+                  onChange={(e) => {
+                    const newVal = { ...long4Val, x: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Y</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={long4Val.y}
+                  onChange={(e) => {
+                    const newVal = { ...long4Val, y: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Z</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={long4Val.z}
+                  onChange={(e) => {
+                    const newVal = { ...long4Val, z: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">W</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={long4Val.w}
+                  onChange={(e) => {
+                    const newVal = { ...long4Val, w: parseInt(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'uint':
+        return (
+          <Input
+            type="number"
+            step="1"
+            min="0"
+            value={defaultValue}
+            onChange={(e) => setDefaultValue(e.target.value)}
+            placeholder="e.g., 42"
+          />
+        );
+
+      case 'uint2':
+        const uint2Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => Math.max(0, parseInt(p.trim())));
+              return { x: parts[0] || 0, y: parts[1] || 0 };
+            }
+            return JSON.parse(defaultValue || '{"x":0,"y":0}');
+          } catch {
+            return { x: 0, y: 0 };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">UInt2 (X, Y)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">X</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={uint2Val.x}
+                  onChange={(e) => {
+                    const newVal = { ...uint2Val, x: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Y</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={uint2Val.y}
+                  onChange={(e) => {
+                    const newVal = { ...uint2Val, y: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'uint3':
+        const uint3Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => Math.max(0, parseInt(p.trim())));
+              return { x: parts[0] || 0, y: parts[1] || 0, z: parts[2] || 0 };
+            }
+            return JSON.parse(defaultValue || '{"x":0,"y":0,"z":0}');
+          } catch {
+            return { x: 0, y: 0, z: 0 };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">UInt3 (X, Y, Z)</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs">X</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={uint3Val.x}
+                  onChange={(e) => {
+                    const newVal = { ...uint3Val, x: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Y</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={uint3Val.y}
+                  onChange={(e) => {
+                    const newVal = { ...uint3Val, y: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Z</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={uint3Val.z}
+                  onChange={(e) => {
+                    const newVal = { ...uint3Val, z: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'uint4':
+        const uint4Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => Math.max(0, parseInt(p.trim())));
+              return { x: parts[0] || 0, y: parts[1] || 0, z: parts[2] || 0, w: parts[3] || 0 };
+            }
+            return JSON.parse(defaultValue || '{"x":0,"y":0,"z":0,"w":0}');
+          } catch {
+            return { x: 0, y: 0, z: 0, w: 0 };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">UInt4 (X, Y, Z, W)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">X</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={uint4Val.x}
+                  onChange={(e) => {
+                    const newVal = { ...uint4Val, x: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Y</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={uint4Val.y}
+                  onChange={(e) => {
+                    const newVal = { ...uint4Val, y: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Z</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={uint4Val.z}
+                  onChange={(e) => {
+                    const newVal = { ...uint4Val, z: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">W</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={uint4Val.w}
+                  onChange={(e) => {
+                    const newVal = { ...uint4Val, w: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
       case 'float':
       case 'double':
         return (
@@ -767,6 +1141,357 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
             onChange={(e) => setDefaultValue(e.target.value)}
             placeholder="e.g., 3.14"
           />
+        );
+
+      case 'ulong':
+        return (
+          <Input
+            type="number"
+            step="1"
+            min="0"
+            value={defaultValue}
+            onChange={(e) => setDefaultValue(e.target.value)}
+            placeholder="e.g., 18446744073709551615"
+          />
+        );
+
+      case 'ulong2':
+        const ulong2Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => Math.max(0, parseInt(p.trim())));
+              return { x: parts[0] || 0, y: parts[1] || 0 };
+            }
+            return JSON.parse(defaultValue || '{"x":0,"y":0}');
+          } catch {
+            return { x: 0, y: 0 };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">ULong2 (X, Y)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">X</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={ulong2Val.x}
+                  onChange={(e) => {
+                    const newVal = { ...ulong2Val, x: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Y</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={ulong2Val.y}
+                  onChange={(e) => {
+                    const newVal = { ...ulong2Val, y: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'ulong3':
+        const ulong3Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => Math.max(0, parseInt(p.trim())));
+              return { x: parts[0] || 0, y: parts[1] || 0, z: parts[2] || 0 };
+            }
+            return JSON.parse(defaultValue || '{"x":0,"y":0,"z":0}');
+          } catch {
+            return { x: 0, y: 0, z: 0 };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">ULong3 (X, Y, Z)</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs">X</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={ulong3Val.x}
+                  onChange={(e) => {
+                    const newVal = { ...ulong3Val, x: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Y</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={ulong3Val.y}
+                  onChange={(e) => {
+                    const newVal = { ...ulong3Val, y: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Z</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={ulong3Val.z}
+                  onChange={(e) => {
+                    const newVal = { ...ulong3Val, z: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'ulong4':
+        const ulong4Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => Math.max(0, parseInt(p.trim())));
+              return { x: parts[0] || 0, y: parts[1] || 0, z: parts[2] || 0, w: parts[3] || 0 };
+            }
+            return JSON.parse(defaultValue || '{"x":0,"y":0,"z":0,"w":0}');
+          } catch {
+            return { x: 0, y: 0, z: 0, w: 0 };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">ULong4 (X, Y, Z, W)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">X</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={ulong4Val.x}
+                  onChange={(e) => {
+                    const newVal = { ...ulong4Val, x: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Y</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={ulong4Val.y}
+                  onChange={(e) => {
+                    const newVal = { ...ulong4Val, y: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Z</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={ulong4Val.z}
+                  onChange={(e) => {
+                    const newVal = { ...ulong4Val, z: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">W</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={ulong4Val.w}
+                  onChange={(e) => {
+                    const newVal = { ...ulong4Val, w: Math.max(0, parseInt(e.target.value) || 0) };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'short':
+        return (
+          <Input
+            type="number"
+            step="1"
+            min="-32768"
+            max="32767"
+            value={defaultValue}
+            onChange={(e) => setDefaultValue(e.target.value)}
+            placeholder="e.g., -32768 to 32767"
+          />
+        );
+
+      case 'ushort':
+        return (
+          <Input
+            type="number"
+            step="1"
+            min="0"
+            max="65535"
+            value={defaultValue}
+            onChange={(e) => setDefaultValue(e.target.value)}
+            placeholder="e.g., 0 to 65535"
+          />
+        );
+
+      case 'byte':
+        return (
+          <Input
+            type="number"
+            step="1"
+            min="0"
+            max="255"
+            value={defaultValue}
+            onChange={(e) => setDefaultValue(e.target.value)}
+            placeholder="e.g., 0 to 255"
+          />
+        );
+
+      case 'sbyte':
+        return (
+          <Input
+            type="number"
+            step="1"
+            min="-128"
+            max="127"
+            value={defaultValue}
+            onChange={(e) => setDefaultValue(e.target.value)}
+            placeholder="e.g., -128 to 127"
+          />
+        );
+
+      case 'floatq':
+      case 'doubleq':
+        const quaternionVal = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => parseFloat(p.trim()));
+              return { x: parts[0] || 0, y: parts[1] || 0, z: parts[2] || 0, w: parts[3] || 1 };
+            }
+            return JSON.parse(defaultValue || '{"x":0,"y":0,"z":0,"w":1}');
+          } catch {
+            return { x: 0, y: 0, z: 0, w: 1 }; // Identity quaternion
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">Quaternion (X, Y, Z, W)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">X</Label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={quaternionVal.x}
+                  onChange={(e) => {
+                    const newVal = { ...quaternionVal, x: parseFloat(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Y</Label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={quaternionVal.y}
+                  onChange={(e) => {
+                    const newVal = { ...quaternionVal, y: parseFloat(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Z</Label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={quaternionVal.z}
+                  onChange={(e) => {
+                    const newVal = { ...quaternionVal, z: parseFloat(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">W</Label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={quaternionVal.w}
+                  onChange={(e) => {
+                    const newVal = { ...quaternionVal, w: parseFloat(e.target.value) || 1 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z},${newVal.w}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'timespan':
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">Timespan</Label>
+            <Input
+              type="text"
+              value={defaultValue}
+              onChange={(e) => setDefaultValue(e.target.value)}
+              placeholder="e.g., 1.02:03:04.567 (days.hours:minutes:seconds.milliseconds)"
+            />
+          </div>
+        );
+
+      case 'decimal':
+        return (
+          <Input
+            type="number"
+            step="0.000000001"
+            value={defaultValue}
+            onChange={(e) => setDefaultValue(e.target.value)}
+            placeholder="e.g., 123.456789012345"
+          />
+        );
+
+      case 'enum':
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">Enum Value</Label>
+            <Input
+              type="text"
+              value={defaultValue}
+              onChange={(e) => setDefaultValue(e.target.value)}
+              placeholder="e.g., EnumType.Value"
+            />
+          </div>
         );
 
       case 'datetime':
