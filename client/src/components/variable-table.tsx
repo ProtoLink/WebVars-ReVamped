@@ -53,7 +53,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete, apiKeys = [
       // For unsafe variables, use UserID instead of API key
       apiUrl = `${baseUrl}/api/v1/variables/${variable.name}?userId={YOUR_USER_ID}`;
       description = `Unsafe variable URL copied - replace {YOUR_USER_ID} with actual user ID`;
-    } else if (selectedApiKey && storedKeys[selectedApiKey]) {
+    } else if (selectedApiKey && selectedApiKey !== "placeholder" && storedKeys[selectedApiKey]) {
       // Use selected API key if available
       apiUrl = `${baseUrl}/api/v1/variables/${variable.name}?key=${storedKeys[selectedApiKey]}`;
       description = `URL for "${variable.name}" copied with your API key`;
@@ -146,7 +146,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete, apiKeys = [
                   <SelectValue placeholder="Select API Key for Copy" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Use placeholder</SelectItem>
+                  <SelectItem value="placeholder">Use placeholder</SelectItem>
                   {apiKeys.map((key: any) => (
                     <SelectItem key={key.id} value={key.id.toString()}>
                       {key.name} {storedKeys[key.id] ? '✓' : '(unavailable)'}

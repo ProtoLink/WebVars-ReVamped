@@ -14,6 +14,7 @@ import { SUPPORTED_DATA_TYPES } from "@shared/schema";
 const formSchema = z.object({
   name: z.string().min(1, "Variable name is required").regex(/^[a-zA-Z0-9._-]+$/, "Invalid variable name format"),
   type: z.enum(SUPPORTED_DATA_TYPES),
+  ownerType: z.enum(["user", "unsafe"]).default("user"),
   defaultValue: z.string().optional(),
   readPermission: z.string().default("variable_owner"),
   writePermission: z.string().default("variable_owner"),
@@ -46,6 +47,7 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
     resolver: zodResolver(formSchema),
     defaultValues: {
       type: "string",
+      ownerType: "user",
       readPermission: "variable_owner",
       writePermission: "variable_owner",
       listPermission: "definition_owner",
@@ -1553,6 +1555,24 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="ownerType" className="block text-sm font-medium text-slate-700 mb-1">
+              Variable Type
+            </Label>
+            <Select onValueChange={(value) => setValue("ownerType", value as "user" | "unsafe")} defaultValue="user">
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="user">Secure (API Key required)</SelectItem>
+                <SelectItem value="unsafe">Unsafe (User ID only)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-slate-600 mt-1">
+              Unsafe variables use User ID instead of API keys for authentication
+            </p>
           </div>
 
           <div>
