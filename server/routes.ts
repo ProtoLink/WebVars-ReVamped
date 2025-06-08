@@ -3,6 +3,23 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { insertVariableDefinitionSchema, insertVariableValueSchema, insertWebhookSchema, SUPPORTED_DATA_TYPES, PERMISSION_TYPES } from "@shared/schema";
+import { getEnumValues } from "@shared/resonite-enums";
+
+// Helper functions for enum conversion
+function convertEnumNameToIndex(enumType: string, enumName: string): number {
+  const enumValues = getEnumValues(enumType as any);
+  const index = enumValues.indexOf(enumName);
+  return index >= 0 ? index : 0; // Default to 0 if not found
+}
+
+function convertEnumIndexToName(enumType: string, enumIndex: number): string {
+  const enumValues = getEnumValues(enumType as any);
+  return enumValues[enumIndex] || enumValues[0] || ''; // Default to first value if index out of bounds
+}
+
+function isNumericString(str: string): boolean {
+  return /^\d+$/.test(str.trim());
+}
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
@@ -365,6 +382,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!value) {
         // Return default value if no specific value exists
+        let returnValue = definition.defaultValue || '';
+        
+        // Convert enum name to numerical index for text/plain responses
+        if (!wantsJson && definition.type === 'enum' && definition.enumType && returnValue) {
+          const enumIndex = convertEnumNameToIndex(definition.enumType, returnValue);
+          returnValue = enumIndex.toString();
+        }
+        
         if (wantsJson) {
           const responseData = {
             success: true,
@@ -383,9 +408,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
           return res.json(responseData);
         } else {
-          // Return raw value for Resonite webhooks
-          return res.set('Content-Type', 'text/plain').send(definition.defaultValue || '');
+          // Return raw value for Resonite webhooks (enum as numerical index)
+          return res.set('Content-Type', 'text/plain').send(returnValue);
         }
+      }
+
+      // Handle enum conversion for text/plain responses
+      let returnValue = value.value;
+      if (!wantsJson && definition.type === 'enum' && definition.enumType && returnValue) {
+        const enumIndex = convertEnumNameToIndex(definition.enumType, returnValue);
+        returnValue = enumIndex.toString();
       }
 
       if (wantsJson) {
@@ -407,8 +439,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
       } else {
-        // Return raw value for Resonite webhooks
-        res.set('Content-Type', 'text/plain').send(value.value);
+        // Return raw value for Resonite webhooks (enum as numerical index)
+        res.set('Content-Type', 'text/plain').send(returnValue);
       }
     } catch (error) {
       console.error('Get variable error:', error);
@@ -435,6 +467,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // Plain text input: use entire body as value
         value = req.body;
+        
+        // Convert numerical enum index to enum name for text/plain input
+        if (definition.type === 'enum' && definition.enumType && isNumericString(String(value))) {
+          const enumIndex = parseInt(String(value), 10);
+          const enumName = convertEnumIndexToName(definition.enumType, enumIndex);
+          value = enumName;
+        }
       }
       
       const ownerId = (contentType.includes('application/json') && typeof req.body === 'object' ? req.body.owner : undefined) || req.userId;
