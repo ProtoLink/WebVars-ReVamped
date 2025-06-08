@@ -74,8 +74,6 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   
-
-  
   // Fetch user-specific variable values
   const { data: variableValues = {} } = useVariableValues(variables, userId);
 
