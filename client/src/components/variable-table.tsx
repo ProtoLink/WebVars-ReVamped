@@ -54,7 +54,14 @@ function useVariableValues(variables: VariableDefinition[], userId: string) {
           if (response.ok) {
             const data = await response.json();
             if (data.success) {
-              values[variable.name] = data.data;
+              // Map API response format to VariableValue interface
+              values[variable.name] = {
+                name: data.data.name,
+                type: data.data.type,
+                value: data.data.value,
+                owner: data.data.owner,
+                isDefault: data.data.isDefault
+              };
             }
           }
         } catch (error) {
@@ -96,6 +103,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
   // Helper function to get the display value for a variable
   const getDisplayValue = (variable: VariableDefinition) => {
     const userValue = variableValues[variable.name];
+    
     if (userValue && !userValue.isDefault) {
       return {
         value: userValue.value,
