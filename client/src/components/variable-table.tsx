@@ -100,6 +100,17 @@ export function VariableTable({ variables, onEdit, onView, onDelete, apiKeys = [
     }
   };
 
+  const getOwnerTypeBadgeColor = (ownerType: string) => {
+    switch (ownerType) {
+      case 'unsafe':
+        return "bg-orange-100 text-orange-800";
+      case 'user':
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-slate-100 text-slate-800";
+    }
+  };
+
   const formatPermissions = (read: string, write: string) => {
     const permissions = [];
     if (read === 'anyone') permissions.push({ label: 'Read', color: 'bg-green-100 text-green-800' });
@@ -174,9 +185,14 @@ export function VariableTable({ variables, onEdit, onView, onDelete, apiKeys = [
                       <div className="text-xs text-slate-600">{variable.ownerType}-owned</div>
                     </div>
                   </div>
-                  <Badge className={`text-xs font-medium ${getTypeBadgeColor(variable.type)}`}>
-                    {variable.type}
-                  </Badge>
+                  <div className="flex items-center space-x-1">
+                    <Badge className={`text-xs font-medium ${getTypeBadgeColor(variable.type)}`}>
+                      {variable.type}
+                    </Badge>
+                    <Badge className={`text-xs font-medium ${getOwnerTypeBadgeColor(variable.ownerType)}`}>
+                      {variable.ownerType === 'unsafe' ? 'Unsafe' : 'Secure'}
+                    </Badge>
+                  </div>
                 </div>
                 
                 <div className="space-y-2">

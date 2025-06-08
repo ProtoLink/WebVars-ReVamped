@@ -130,6 +130,62 @@ const authenticateApiKey = async (req: any, res: any, next: any) => {
   }
 };
 
+// Middleware for unsafe variable authentication (supports both API key and userId)
+const authenticateUnsafeVariable = async (req: any, res: any, next: any) => {
+  // Try API key authentication first
+  let apiKey: string | undefined;
+  
+  // Check authorization header
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    apiKey = authHeader.substring(7);
+  }
+  
+  // Check query parameter
+  if (!apiKey && req.query.key) {
+    apiKey = req.query.key as string;
+  }
+  
+  if (apiKey) {
+    // Use API key authentication
+    const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
+    
+    try {
+      const apiKeyRecord = await storage.getApiKeyByHash(keyHash);
+      
+      if (apiKeyRecord) {
+        await storage.updateApiKeyLastUsed(apiKeyRecord.id);
+        req.apiKey = apiKeyRecord;
+        req.userId = apiKeyRecord.userId;
+        req.authType = 'apikey';
+        return next();
+      }
+    } catch (error) {
+      // Continue to userId authentication if API key fails
+    }
+  }
+  
+  // Try userId authentication for unsafe variables
+  const userId = req.query.userId as string;
+  if (userId) {
+    // Basic validation that userId exists
+    try {
+      const user = await storage.getUser(userId);
+      if (user) {
+        req.userId = userId;
+        req.authType = 'userid';
+        return next();
+      }
+    } catch (error) {
+      // Continue to error
+    }
+  }
+  
+  return res.status(401).json({ 
+    error: 'Authentication required. Use API key (Authorization header or ?key= parameter) or User ID (?userId= parameter for unsafe variables)' 
+  });
+};
+
 // Middleware to check variable permissions
 const checkVariablePermission = (action: 'read' | 'write' | 'list') => {
   return async (req: any, res: any, next: any) => {
@@ -347,7 +403,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Variable value endpoints
-  app.get('/api/v1/variables/:name', authenticateApiKey, checkVariablePermission('read'), async (req: any, res) => {
+  app.get('/api/v1/variables/:name', authenticateUnsafeVariable, checkVariablePermission('read'), async (req: any, res) => {
     try {
       const definition = req.definition;
       const ownerId = req.query.owner || req.userId;
@@ -396,7 +452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/v1/variables/:name', authenticateApiKey, checkVariablePermission('write'), async (req: any, res) => {
+  app.post('/api/v1/variables/:name', authenticateUnsafeVariable, checkVariablePermission('write'), async (req: any, res) => {
     try {
       const definition = req.definition;
       const { value } = req.body;
