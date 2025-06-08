@@ -45,14 +45,14 @@ export default function Dashboard() {
   // Fetch variable definitions
   const { data: variablesData, isLoading: variablesLoading } = useQuery({
     queryKey: ["/api/v1/definitions", { userId }],
-    queryFn: () => apiRequest(`/api/v1/definitions?userId=${userId}`),
+    queryFn: () => apiRequest("GET", `/api/v1/definitions?userId=${userId}`),
     enabled: !!userId,
   });
 
   // Fetch statistics
   const { data: statsData } = useQuery({
     queryKey: ["/api/v1/stats", { userId }],
-    queryFn: () => apiRequest(`/api/v1/stats?userId=${userId}`),
+    queryFn: () => apiRequest("GET", `/api/v1/stats?userId=${userId}`),
     enabled: !!userId,
   });
 
@@ -392,6 +392,7 @@ export default function Dashboard() {
                   onEdit={handleEdit}
                   onView={handleView}
                   onDelete={handleDelete}
+                  userId={userId}
                 />
               )}
             </div>
