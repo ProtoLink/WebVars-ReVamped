@@ -175,6 +175,11 @@ export default function Dashboard({ userId }: DashboardProps) {
         responseTime,
       };
       
+      // Invalidate variable values cache if a POST request to variables was successful
+      if (request.method === 'POST' && request.endpoint.includes('/api/v1/variables/') && response.status >= 200 && response.status < 300) {
+        queryClient.invalidateQueries({ queryKey: ['/api/v1/variable-values'] });
+      }
+      
       setApiTestResult(result);
       return result;
     } catch (error: any) {
