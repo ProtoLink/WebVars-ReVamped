@@ -37,7 +37,7 @@ export default function DonatePage() {
                   Why Your Support Matters
                 </CardTitle>
                 <CardDescription>
-                  Variable Sync is provided completely free to help the Resonite community build amazing experiences
+                  WebVar is provided completely free to help the Resonite community build amazing experiences
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -110,7 +110,7 @@ export default function DonatePage() {
                 </div>
                 <CardTitle className="text-slate-900 dark:text-white">Make a Donation</CardTitle>
                 <CardDescription>
-                  Every contribution helps keep Variable Sync free and running smoothly
+                  Every contribution helps keep WebVar free and running smoothly
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">

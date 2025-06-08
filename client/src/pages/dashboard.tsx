@@ -461,7 +461,7 @@ export default function Dashboard({ userId }: DashboardProps) {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Getting Started</CardTitle>
                   <CardDescription className="text-sm">
-                    Quick guide to using the Variable Sync API
+                    Quick guide to using the WebVar API
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
