@@ -681,9 +681,18 @@ Content-Type: application/json`}
                       apiKeys.map((key: any) => (
                         <div key={key.id} className="flex items-center justify-between p-3 border border-slate-200 rounded-lg">
                           <div className="flex-1">
-                            <div className="font-medium text-sm">{key.name}</div>
-                            <div className="text-xs text-slate-500">
-                              Created: {new Date(key.createdAt).toLocaleDateString()}
+                            <div className="flex items-center space-x-2">
+                              <div className="font-medium text-sm">{key.name}</div>
+                              <Badge variant={key.isActive ? "default" : "secondary"} className="text-xs">
+                                {key.isActive ? "Active" : "Inactive"}
+                              </Badge>
+                            </div>
+                            <div className="text-xs text-slate-500 space-y-1">
+                              <div>Created: {new Date(key.createdAt).toLocaleDateString()}</div>
+                              {key.lastUsed && (
+                                <div>Last used: {new Date(key.lastUsed).toLocaleDateString()}</div>
+                              )}
+                              <div className="font-mono text-xs">ID: {key.keyHash?.substring(0, 8)}...</div>
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
@@ -691,12 +700,15 @@ Content-Type: application/json`}
                               size="sm"
                               variant="outline"
                               onClick={() => {
+                                // Note: The actual key is only shown once during creation
+                                // Here we show the key hash for reference
                                 navigator.clipboard.writeText(key.keyHash);
                                 toast({
-                                  title: "Copied",
-                                  description: "API key copied to clipboard",
+                                  title: "Key Hash Copied",
+                                  description: "API key hash copied (for reference only)",
                                 });
                               }}
+                              title="Copy key hash for reference"
                             >
                               <Copy className="h-3 w-3" />
                             </Button>
@@ -723,6 +735,9 @@ Content-Type: application/json`}
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Create New API Key</DialogTitle>
+                        <DialogDescription>
+                          Generate a new API key for accessing your variables from external applications or Resonite.
+                        </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
                         <div className="space-y-2">

@@ -506,10 +506,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/v1/api-keys/:id', authenticateApiKey, async (req: any, res) => {
+  app.delete('/api/v1/api-keys/:id', authenticateRequest, async (req: any, res) => {
     try {
       const { id } = req.params;
-      await storage.deleteApiKey(parseInt(id));
+      const keyId = parseInt(id);
+      
+      // Get the API key to verify ownership
+      const userApiKeys = await storage.getUserApiKeys(req.userId);
+      const targetKey = userApiKeys.find(key => key.id === keyId);
+      
+      if (!targetKey) {
+        return res.status(404).json({ error: 'API key not found or not owned by user' });
+      }
+      
+      await storage.deleteApiKey(keyId);
       
       res.json({
         success: true,
