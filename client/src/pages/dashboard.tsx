@@ -101,7 +101,8 @@ export default function Dashboard() {
   // Create variable mutation
   const createVariableMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("PUT", `/api/v1/definitions/${data.name}?userId=${userId}`, data);
+      const response = await apiRequest("PUT", `/api/v1/definitions/${data.name}?userId=${userId}`, data);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions", { userId }] });
@@ -123,7 +124,8 @@ export default function Dashboard() {
   // Demo data creation mutation
   const createDemoDataMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", `/api/demo/create?userId=${userId}`, {});
+      const response = await apiRequest("POST", `/api/demo/create?userId=${userId}`, {});
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions", { userId }] });
@@ -145,7 +147,8 @@ export default function Dashboard() {
   // Delete variable mutation
   const deleteVariableMutation = useMutation({
     mutationFn: async (name: string) => {
-      return await apiRequest("DELETE", `/api/v1/definitions/${name}?userId=${userId}`);
+      const response = await apiRequest("DELETE", `/api/v1/definitions/${name}?userId=${userId}`);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions", { userId }] });
@@ -238,8 +241,8 @@ export default function Dashboard() {
     setShowDeleteDialog(true);
   };
 
-  const variables = (variablesData as any)?.data || [];
-  const stats = (statsData as any)?.data || {
+  const variables = variablesData?.data || [];
+  const stats = statsData?.data || {
     totalVariables: 0,
     totalValues: 0,
     apiRequestsToday: 0,
