@@ -318,7 +318,7 @@ export default function Dashboard({ userId }: DashboardProps) {
               <div>
                 <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
                 <p className="text-sm lg:text-base text-slate-600 dark:text-slate-400 mt-1">
-                  Monitor your cloud variables and API activity for user: 
+                  Monitor your Web Variables and API activity for user: 
                   <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-xs lg:text-sm ml-1">{userId}</span>
                 </p>
               </div>
@@ -376,7 +376,7 @@ export default function Dashboard({ userId }: DashboardProps) {
                 <div>
                   <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">Variables</h1>
                   <p className="text-sm lg:text-base text-slate-600 dark:text-slate-400 mt-1">
-                    Manage your cloud variable definitions for user: 
+                    Manage your Web Variable definitions for user: 
                     <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-xs lg:text-sm ml-1">{userId}</span>
                   </p>
                 </div>
@@ -391,7 +391,7 @@ export default function Dashboard({ userId }: DashboardProps) {
                     <DialogHeader>
                       <DialogTitle>Create Variable Definition</DialogTitle>
                       <DialogDescription>
-                        Define a new cloud variable with its data type and permissions.
+                        Define a new Web Variable with its data type and permissions.
                       </DialogDescription>
                     </DialogHeader>
                     <CreateVariableForm

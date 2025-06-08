@@ -112,9 +112,9 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
           <div className="flex justify-center mb-4">
             <Cloud className="h-12 w-12 text-blue-600" />
           </div>
-          <CardTitle className="text-2xl">Cloud Variables</CardTitle>
+          <CardTitle className="text-2xl">Web Variables</CardTitle>
           <CardDescription>
-            Sign in to your account or create a new one to manage your cloud variables
+            Sign in to your account or create a new one to manage your Web Variables
           </CardDescription>
         </CardHeader>
         <CardContent>
