@@ -26,6 +26,8 @@ import bcrypt from "bcrypt";
 export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
+  getUserByCredentials(username: string, password: string): Promise<User | undefined>;
+  createUser(username: string, password: string): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
 
   // Variable definition operations
@@ -75,6 +77,31 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getUserByCredentials(username: string, password: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, username));
+    if (!user) return undefined;
+    
+    const isValid = await bcrypt.compare(password, user.passwordHash);
+    return isValid ? user : undefined;
+  }
+
+  async createUser(username: string, password: string): Promise<User> {
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+    
+    const [user] = await db
+      .insert(users)
+      .values({
+        id: username,
+        email: `${username}@example.com`,
+        passwordHash,
+        firstName: username,
+        lastName: '',
+      })
+      .returning();
+    return user;
+  }
+
   async upsertUser(userData: UpsertUser): Promise<User> {
     try {
       const [user] = await db
@@ -93,30 +120,10 @@ export class DatabaseStorage implements IStorage {
       return user;
     } catch (error: any) {
       if (error.code === '23505' && error.constraint === 'users_email_unique') {
-        // If email conflict, try to find existing user by ID instead
         const existingUser = await this.getUser(userData.id);
         if (existingUser) {
           return existingUser;
         }
-        // If no existing user with that ID, create with unique email
-        const uniqueUserData = {
-          ...userData,
-          email: `${userData.id}@example.com`
-        };
-        const [user] = await db
-          .insert(users)
-          .values(uniqueUserData)
-          .onConflictDoUpdate({
-            target: users.id,
-            set: {
-              firstName: uniqueUserData.firstName,
-              lastName: uniqueUserData.lastName,
-              profileImageUrl: uniqueUserData.profileImageUrl,
-              updatedAt: new Date(),
-            },
-          })
-          .returning();
-        return user;
       }
       throw error;
     }

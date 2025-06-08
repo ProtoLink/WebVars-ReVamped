@@ -32,23 +32,17 @@ const extractUserId = async (req: any, res: any, next: any) => {
   }
   
   try {
-    // Ensure user exists in database, create if not
-    let user = await storage.getUser(userId);
+    // Check if user exists in database - don't create automatically
+    const user = await storage.getUser(userId);
     if (!user) {
-      user = await storage.upsertUser({
-        id: userId,
-        email: `${userId}@example.com`,
-        firstName: 'User',
-        lastName: userId,
-        profileImageUrl: null,
-      });
+      return res.status(401).json({ error: 'User not found. Please log in or sign up.' });
     }
     req.userId = userId;
     req.user = user;
     next();
   } catch (error) {
-    console.error('User creation error:', error);
-    res.status(500).json({ error: 'Failed to initialize user' });
+    console.error('User authentication error:', error);
+    return res.status(500).json({ error: 'Authentication failed' });
   }
 };
 
@@ -99,6 +93,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Demo data creation error:', error);
       res.status(500).json({ error: 'Failed to create demo data' });
+    }
+  });
+
+  // Authentication endpoints
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      if (!username || !password) {
+        return res.status(400).json({ error: 'Username and password are required' });
+      }
+
+      const user = await storage.getUserByCredentials(username, password);
+      if (!user) {
+        return res.status(401).json({ error: 'Invalid username or password' });
+      }
+
+      // Store user session
+      req.session.userId = user.id;
+      req.session.user = user;
+
+      res.json({
+        success: true,
+        data: {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName
+        }
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ error: 'Login failed' });
+    }
+  });
+
+  app.post('/api/auth/signup', async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      if (!username || !password) {
+        return res.status(400).json({ error: 'Username and password are required' });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUser(username);
+      if (existingUser) {
+        return res.status(409).json({ error: 'Username already exists' });
+      }
+
+      const user = await storage.createUser(username, password);
+
+      // Store user session
+      req.session.userId = user.id;
+      req.session.user = user;
+
+      res.json({
+        success: true,
+        data: {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName
+        }
+      });
+    } catch (error) {
+      console.error('Signup error:', error);
+      res.status(500).json({ error: 'Signup failed' });
+    }
+  });
+
+  app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Logout failed' });
+      }
+      res.json({ success: true, message: 'Logged out successfully' });
+    });
+  });
+
+  app.get('/api/auth/me', (req, res) => {
+    if (req.session?.userId) {
+      res.json({
+        success: true,
+        data: {
+          id: req.session.userId,
+          ...req.session.user
+        }
+      });
+    } else {
+      res.status(401).json({ error: 'Not authenticated' });
     }
   });
 
