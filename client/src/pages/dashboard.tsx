@@ -78,6 +78,8 @@ export default function Dashboard({ userId }: DashboardProps) {
           queryClient.invalidateQueries({ queryKey: ["/api/v1/stats", { userId }] });
           break;
         case "variable_updated":
+          // Invalidate variable values cache for real-time updates
+          queryClient.invalidateQueries({ queryKey: ["/api/v1/variable-values"] });
           queryClient.invalidateQueries({ queryKey: ["/api/v1/stats", { userId }] });
           toast({
             title: "Variable Updated",
@@ -175,16 +177,7 @@ export default function Dashboard({ userId }: DashboardProps) {
         responseTime,
       };
       
-      // Invalidate variable values cache if a POST request to variables was successful
-      if (request.method === 'POST' && request.endpoint.includes('/api/v1/variables/') && response.status >= 200 && response.status < 300) {
-        // Force immediate refetch of variable values - use setTimeout to ensure UI updates
-        setTimeout(async () => {
-          await queryClient.invalidateQueries({ queryKey: ['/api/v1/variable-values'] });
-          await queryClient.refetchQueries({ queryKey: ['/api/v1/variable-values'] });
-        }, 100);
-        // Also invalidate stats in case total values count changed
-        queryClient.invalidateQueries({ queryKey: ['/api/v1/stats'] });
-      }
+      // WebSocket will handle real-time updates automatically
       
       setApiTestResult(result);
       return result;

@@ -66,8 +66,7 @@ function useVariableValues(variables: VariableDefinition[], userId: string) {
     },
     enabled: variables.length > 0 && !!userId,
     refetchOnWindowFocus: false,
-    staleTime: 0, // Always refetch to get latest values
-    refetchIntervalInBackground: false
+    staleTime: 5 * 60 * 1000 // Cache for 5 minutes, WebSocket will invalidate when needed
   });
 }
 
