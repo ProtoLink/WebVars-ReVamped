@@ -118,7 +118,7 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
       case 'color':
         return (
           <div className="space-y-2">
-            <Label>Color Value</Label>
+            <Label>Your Color Value</Label>
             <div className="flex space-x-2">
               <Input
                 type="color"
@@ -131,7 +131,7 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
                 type="text"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                placeholder="#FF0000 or rgba(255,0,0,1)"
+                placeholder={variable?.defaultValue || "#FF0000 or rgba(255,0,0,1)"}
                 className="flex-1"
                 disabled={mode === 'view'}
               />
@@ -143,7 +143,7 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
         const float3Val = typeof parsedValue === 'object' ? parsedValue : { x: 0, y: 0, z: 0 };
         return (
           <div className="space-y-2">
-            <Label>Vector3 (X, Y, Z)</Label>
+            <Label>Your Vector3 Value (X, Y, Z)</Label>
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <Label className="text-xs">X</Label>
@@ -192,7 +192,7 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
         const float2Val = typeof parsedValue === 'object' ? parsedValue : { x: 0, y: 0 };
         return (
           <div className="space-y-2">
-            <Label>Vector2 (X, Y)</Label>
+            <Label>Your Vector2 Value (X, Y)</Label>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">X</Label>
@@ -227,7 +227,7 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
       case 'bool':
         return (
           <div className="space-y-2">
-            <Label>Boolean Value</Label>
+            <Label>Your Boolean Value</Label>
             <div className="flex items-center space-x-2">
               <Switch
                 checked={parsedValue === true || value === 'true'}
@@ -244,7 +244,7 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
       case 'int':
         return (
           <div className="space-y-2">
-            <Label>Integer Value</Label>
+            <Label>Your Integer Value</Label>
             <Input
               type="number"
               step="1"
@@ -258,7 +258,7 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
       case 'float':
         return (
           <div className="space-y-2">
-            <Label>Float Value</Label>
+            <Label>Your Float Value</Label>
             <Input
               type="number"
               step="0.001"
@@ -272,12 +272,13 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
       default:
         return (
           <div className="space-y-2">
-            <Label>String Value</Label>
+            <Label>Your Current Value</Label>
             <Input
               type="text"
               value={value}
               onChange={(e) => setValue(e.target.value)}
               disabled={mode === 'view'}
+              placeholder={variable?.defaultValue || 'Enter value...'}
             />
           </div>
         );
