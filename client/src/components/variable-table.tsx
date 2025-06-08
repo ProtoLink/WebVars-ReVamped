@@ -1,0 +1,214 @@
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Edit, Eye, Trash2, Search, Database, Hash, ToggleLeft, Type } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+
+interface VariableDefinition {
+  id: number;
+  name: string;
+  type: string;
+  defaultValue: string | null;
+  ownerId: string;
+  ownerType: string;
+  readPermission: string;
+  writePermission: string;
+  listPermission: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface VariableTableProps {
+  variables: VariableDefinition[];
+  onEdit: (variable: VariableDefinition) => void;
+  onView: (variable: VariableDefinition) => void;
+  onDelete: (variable: VariableDefinition) => void;
+}
+
+export function VariableTable({ variables, onEdit, onView, onDelete }: VariableTableProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+
+  const filteredVariables = variables.filter(variable => {
+    const matchesSearch = variable.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = typeFilter === "all" || variable.type === typeFilter;
+    return matchesSearch && matchesType;
+  });
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'string':
+        return <Type className="w-4 h-4 text-blue-600" />;
+      case 'int':
+      case 'float':
+      case 'double':
+        return <Hash className="w-4 h-4 text-green-600" />;
+      case 'bool':
+        return <ToggleLeft className="w-4 h-4 text-purple-600" />;
+      default:
+        return <Database className="w-4 h-4 text-slate-600" />;
+    }
+  };
+
+  const getTypeBadgeColor = (type: string) => {
+    switch (type) {
+      case 'string':
+        return "bg-blue-100 text-blue-800";
+      case 'int':
+      case 'float':
+      case 'double':
+        return "bg-green-100 text-green-800";
+      case 'bool':
+        return "bg-purple-100 text-purple-800";
+      default:
+        return "bg-slate-100 text-slate-800";
+    }
+  };
+
+  const formatPermissions = (read: string, write: string) => {
+    const permissions = [];
+    if (read === 'anyone') permissions.push({ label: 'Read', color: 'bg-green-100 text-green-800' });
+    if (write === 'anyone' || write === 'variable_owner') permissions.push({ label: 'Write', color: 'bg-amber-100 text-amber-800' });
+    if (write === 'definition_owner') permissions.push({ label: 'Admin Only', color: 'bg-red-100 text-red-800' });
+    if (write === 'variable_owner') permissions.push({ label: 'Variable Owner', color: 'bg-amber-100 text-amber-800' });
+    
+    return permissions;
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-xl font-bold text-slate-900">Web Variables</CardTitle>
+            <p className="text-slate-600 text-sm mt-1">Manage your persistent variables and their permissions</p>
+          </div>
+          <div className="flex items-center space-x-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search variables..."
+                className="pl-10 w-64"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="string">string</SelectItem>
+                <SelectItem value="float">float</SelectItem>
+                <SelectItem value="int">int</SelectItem>
+                <SelectItem value="bool">bool</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50">
+                <TableHead className="text-left py-3 px-6 text-sm font-medium text-slate-600">Name</TableHead>
+                <TableHead className="text-left py-3 px-6 text-sm font-medium text-slate-600">Type</TableHead>
+                <TableHead className="text-left py-3 px-6 text-sm font-medium text-slate-600">Value</TableHead>
+                <TableHead className="text-left py-3 px-6 text-sm font-medium text-slate-600">Permissions</TableHead>
+                <TableHead className="text-left py-3 px-6 text-sm font-medium text-slate-600">Last Updated</TableHead>
+                <TableHead className="text-left py-3 px-6 text-sm font-medium text-slate-600">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredVariables.map((variable) => (
+                <TableRow key={variable.id} className="hover:bg-slate-50">
+                  <TableCell className="py-4 px-6">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                        {getTypeIcon(variable.type)}
+                      </div>
+                      <div>
+                        <div className="font-medium text-slate-900">{variable.name}</div>
+                        <div className="text-sm text-slate-600">{variable.ownerType}-owned</div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-4 px-6">
+                    <Badge className={`text-xs font-medium ${getTypeBadgeColor(variable.type)}`}>
+                      {variable.type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="py-4 px-6">
+                    <code className="text-sm font-mono text-slate-700">
+                      {variable.defaultValue || "null"}
+                    </code>
+                  </TableCell>
+                  <TableCell className="py-4 px-6">
+                    <div className="flex space-x-1">
+                      {formatPermissions(variable.readPermission, variable.writePermission).map((perm, index) => (
+                        <Badge key={index} className={`text-xs font-medium ${perm.color}`}>
+                          {perm.label}
+                        </Badge>
+                      ))}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-4 px-6 text-sm text-slate-600">
+                    {formatDistanceToNow(new Date(variable.updatedAt), { addSuffix: true })}
+                  </TableCell>
+                  <TableCell className="py-4 px-6">
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onEdit(variable)}
+                        className="text-slate-400 hover:text-slate-600"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onView(variable)}
+                        className="text-slate-400 hover:text-slate-600"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDelete(variable)}
+                        className="text-slate-400 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        {filteredVariables.length === 0 && (
+          <div className="text-center py-8 text-slate-500">
+            No variables found matching your criteria
+          </div>
+        )}
+        <div className="p-4 border-t border-slate-200 flex items-center justify-between">
+          <div className="text-sm text-slate-600">
+            Showing {filteredVariables.length} of {variables.length} variables
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" size="sm">Previous</Button>
+            <Button size="sm">Next</Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
