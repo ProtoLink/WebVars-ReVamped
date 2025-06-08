@@ -27,10 +27,26 @@ const wsConnections = new Map<string, WebSocket>();
 // Middleware to authenticate requests (supports both session and API key)
 const authenticateRequest = async (req: any, res: any, next: any) => {
   // Try session authentication first
-  if (req.isAuthenticated && req.isAuthenticated()) {
-    req.userId = req.user.claims.sub;
-    req.authType = 'session';
-    return next();
+  if (req.session && req.session.user) {
+    try {
+      let user = await storage.getUser(req.session.user.id);
+      if (!user) {
+        user = await storage.upsertUser({
+          id: req.session.user.id,
+          email: req.session.user.email,
+          firstName: req.session.user.firstName,
+          lastName: req.session.user.lastName,
+          profileImageUrl: req.session.user.profileImageUrl,
+        });
+      }
+      req.user = user;
+      req.userId = user.id;
+      req.authType = 'session';
+      return next();
+    } catch (error) {
+      console.error('Session authentication error:', error);
+      return res.status(500).json({ error: 'Authentication failed' });
+    }
   }
 
   // Fall back to API key authentication
