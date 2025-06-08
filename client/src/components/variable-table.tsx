@@ -2,10 +2,9 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Edit, Eye, Trash2, Search, Database, Hash, ToggleLeft, Type, Copy } from "lucide-react";
+import { Edit, Eye, Trash2, Search, Database, Copy } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -33,13 +32,10 @@ interface VariableTableProps {
 
 export function VariableTable({ variables, onEdit, onView, onDelete, userId = "user123" }: VariableTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
   const { toast } = useToast();
 
   const filteredVariables = variables.filter(variable => {
-    const matchesSearch = variable.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = typeFilter === "all" || variable.type === typeFilter;
-    return matchesSearch && matchesType;
+    return variable.name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   const copyApiUrl = (variable: VariableDefinition) => {
@@ -53,56 +49,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
     });
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'string':
-        return <Type className="w-4 h-4 text-blue-600" />;
-      case 'int':
-      case 'float':
-      case 'double':
-        return <Hash className="w-4 h-4 text-green-600" />;
-      case 'bool':
-        return <ToggleLeft className="w-4 h-4 text-purple-600" />;
-      default:
-        return <Database className="w-4 h-4 text-slate-600" />;
-    }
-  };
 
-  const getTypeBadgeColor = (type: string) => {
-    switch (type) {
-      case 'string':
-        return "bg-blue-100 text-blue-800";
-      case 'int':
-      case 'float':
-      case 'double':
-        return "bg-green-100 text-green-800";
-      case 'bool':
-        return "bg-purple-100 text-purple-800";
-      default:
-        return "bg-slate-100 text-slate-800";
-    }
-  };
-
-  const getOwnerTypeBadgeColor = (ownerType: string) => {
-    switch (ownerType) {
-      case 'unsafe':
-        return "bg-orange-100 text-orange-800";
-      case 'user':
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-slate-100 text-slate-800";
-    }
-  };
-
-  const formatPermissions = (read: string, write: string) => {
-    const permissions = [];
-    if (read === 'anyone') permissions.push({ label: 'Read', color: 'bg-green-100 text-green-800' });
-    if (write === 'anyone' || write === 'variable_owner') permissions.push({ label: 'Write', color: 'bg-amber-100 text-amber-800' });
-    if (write === 'definition_owner') permissions.push({ label: 'Admin Only', color: 'bg-red-100 text-red-800' });
-    if (write === 'variable_owner') permissions.push({ label: 'Variable Owner', color: 'bg-amber-100 text-amber-800' });
-    
-    return permissions;
-  };
 
   return (
     <Card>
@@ -122,18 +69,6 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-full sm:w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="string">string</SelectItem>
-                <SelectItem value="float">float</SelectItem>
-                <SelectItem value="int">int</SelectItem>
-                <SelectItem value="bool">bool</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
       </CardHeader>
@@ -146,14 +81,13 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                      {getTypeIcon(variable.type)}
+                      <Database className="h-5 w-5 text-blue-600" />
                     </div>
                     <div>
                       <div className="font-medium text-slate-900 dark:text-white text-sm">{variable.name}</div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400">{variable.ownerType}-owned</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">Variable</div>
                     </div>
                   </div>
-
                 </div>
                 
                 <div className="space-y-2">
@@ -164,16 +98,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                     </code>
                   </div>
                   
-                  <div>
-                    <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Permissions:</span>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {formatPermissions(variable.readPermission, variable.writePermission).map((perm, index) => (
-                        <Badge key={index} className={`text-xs font-medium ${perm.color}`}>
-                          {perm.label}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
+
                   
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-slate-600 dark:text-slate-400">
@@ -230,9 +155,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
             <TableHeader>
               <TableRow className="bg-slate-50 dark:bg-slate-800">
                 <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600 dark:text-slate-400">Name</TableHead>
-                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600 dark:text-slate-400">Type</TableHead>
                 <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600 dark:text-slate-400">Value</TableHead>
-                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600 dark:text-slate-400">Permissions</TableHead>
                 <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600 dark:text-slate-400">Updated</TableHead>
                 <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600 dark:text-slate-400">Actions</TableHead>
               </TableRow>
@@ -243,32 +166,18 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                   <TableCell className="py-4 px-4 lg:px-6">
                     <div className="flex items-center">
                       <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center mr-3">
-                        {getTypeIcon(variable.type)}
+                        <Database className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
                         <div className="font-medium text-slate-900 dark:text-white text-sm">{variable.name}</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400">{variable.ownerType}-owned</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400">Variable</div>
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell className="py-4 px-4 lg:px-6">
-                    <Badge className={`text-xs font-medium ${getTypeBadgeColor(variable.type)}`}>
-                      {variable.type}
-                    </Badge>
                   </TableCell>
                   <TableCell className="py-4 px-4 lg:px-6">
                     <code className="text-xs font-mono text-slate-700 dark:text-slate-300 max-w-24 truncate block">
                       {variable.defaultValue || "null"}
                     </code>
-                  </TableCell>
-                  <TableCell className="py-4 px-4 lg:px-6">
-                    <div className="flex flex-wrap gap-1">
-                      {formatPermissions(variable.readPermission, variable.writePermission).map((perm, index) => (
-                        <Badge key={index} className={`text-xs font-medium ${perm.color}`}>
-                          {perm.label}
-                        </Badge>
-                      ))}
-                    </div>
                   </TableCell>
                   <TableCell className="py-4 px-4 lg:px-6 text-xs text-slate-600 dark:text-slate-400">
                     {formatDistanceToNow(new Date(variable.updatedAt), { addSuffix: true })}
