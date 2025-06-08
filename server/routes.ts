@@ -168,8 +168,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.createUser(username, password);
 
       // Store user session
-      (req as any).session.userId = user.id;
-      (req as any).session.user = user;
+      const session = (req as any).session;
+      if (!session) {
+        console.error('Session not available during signup');
+        return res.status(500).json({ error: 'Session initialization failed' });
+      }
+      session.userId = user.id;
+      session.user = user;
 
       res.json({
         success: true,
