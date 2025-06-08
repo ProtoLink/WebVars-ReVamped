@@ -35,7 +35,20 @@ export default function Dashboard() {
   const [variableToDelete, setVariableToDelete] = useState<any>(null);
   const [apiTestLoading, setApiTestLoading] = useState(false);
   const [apiTestResult, setApiTestResult] = useState<any>(null);
-  const [userId, setUserId] = useState("user123"); // Default user ID
+  const [userId, setUserId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('userId') || 'user123';
+    }
+    return 'user123';
+  }); // Default user ID with localStorage persistence
+
+  // Save userId to localStorage whenever it changes
+  const handleUserIdChange = (newUserId: string) => {
+    setUserId(newUserId);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('userId', newUserId);
+    }
+  };
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -245,7 +258,7 @@ export default function Dashboard() {
               <Input
                 id="userId"
                 value={userId}
-                onChange={(e) => setUserId(e.target.value)}
+                onChange={(e) => handleUserIdChange(e.target.value)}
                 placeholder="Enter user ID"
                 className="flex-1 sm:w-32"
               />

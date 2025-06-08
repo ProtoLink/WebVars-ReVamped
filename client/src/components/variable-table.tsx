@@ -153,14 +153,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                       <div className="text-xs text-slate-600 dark:text-slate-400">{variable.ownerType}-owned</div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <Badge className={`text-xs font-medium ${getTypeBadgeColor(variable.type)}`}>
-                      {variable.type}
-                    </Badge>
-                    <Badge className={`text-xs font-medium ${getOwnerTypeBadgeColor(variable.ownerType)}`}>
-                      {variable.ownerType === 'unsafe' ? 'Unsafe' : 'Secure'}
-                    </Badge>
-                  </div>
+
                 </div>
                 
                 <div className="space-y-2">
