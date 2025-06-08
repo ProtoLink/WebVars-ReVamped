@@ -9,6 +9,241 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+// Helper function to render smart input components based on data type
+const renderSmartInput = (type: string, value: string, onChange: (value: string) => void, disabled: boolean) => {
+  switch (type) {
+    case 'bool':
+      return (
+        <Select value={value} onValueChange={onChange} disabled={disabled}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select boolean value" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="true">True</SelectItem>
+            <SelectItem value="false">False</SelectItem>
+          </SelectContent>
+        </Select>
+      );
+
+    case 'color':
+    case 'colorX':
+      return (
+        <div className="flex space-x-2">
+          <Input
+            type="color"
+            value={value.startsWith('#') ? value : '#000000'}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-16 h-10"
+            disabled={disabled}
+          />
+          <Input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="#RRGGBB or rgba(r,g,b,a)"
+            className="flex-1"
+            disabled={disabled}
+          />
+        </div>
+      );
+
+    case 'datetime':
+      return (
+        <Input
+          type="datetime-local"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+        />
+      );
+
+    case 'uri':
+      return (
+        <Input
+          type="url"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="https://example.com"
+          disabled={disabled}
+        />
+      );
+
+    case 'float':
+    case 'double':
+    case 'decimal':
+    case 'half':
+      return (
+        <Input
+          type="number"
+          step="any"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="0.0"
+          disabled={disabled}
+        />
+      );
+
+    case 'int':
+    case 'uint':
+    case 'long':
+    case 'ulong':
+    case 'short':
+    case 'ushort':
+    case 'byte':
+    case 'sbyte':
+      return (
+        <Input
+          type="number"
+          step="1"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="0"
+          disabled={disabled}
+        />
+      );
+
+    case 'float2':
+    case 'double2':
+    case 'int2':
+    case 'uint2':
+    case 'long2':
+    case 'ulong2':
+    case 'bool2':
+      const parts2 = value.split(',');
+      return (
+        <div className="grid grid-cols-2 gap-2">
+          <Input
+            type={type.includes('bool') ? 'text' : 'number'}
+            step={type.includes('float') || type.includes('double') ? 'any' : '1'}
+            placeholder="X"
+            value={parts2[0] || ''}
+            onChange={(e) => {
+              const newParts = [...parts2];
+              newParts[0] = e.target.value;
+              onChange(newParts.join(','));
+            }}
+            disabled={disabled}
+          />
+          <Input
+            type={type.includes('bool') ? 'text' : 'number'}
+            step={type.includes('float') || type.includes('double') ? 'any' : '1'}
+            placeholder="Y"
+            value={parts2[1] || ''}
+            onChange={(e) => {
+              const newParts = [...parts2];
+              newParts[1] = e.target.value;
+              onChange(newParts.join(','));
+            }}
+            disabled={disabled}
+          />
+        </div>
+      );
+
+    case 'float3':
+    case 'double3':
+    case 'int3':
+    case 'uint3':
+    case 'long3':
+    case 'ulong3':
+    case 'bool3':
+      const parts3 = value.split(',');
+      return (
+        <div className="grid grid-cols-3 gap-2">
+          {['X', 'Y', 'Z'].map((label, index) => (
+            <Input
+              key={label}
+              type={type.includes('bool') ? 'text' : 'number'}
+              step={type.includes('float') || type.includes('double') ? 'any' : '1'}
+              placeholder={label}
+              value={parts3[index] || ''}
+              onChange={(e) => {
+                const newParts = [...parts3];
+                newParts[index] = e.target.value;
+                onChange(newParts.join(','));
+              }}
+              disabled={disabled}
+            />
+          ))}
+        </div>
+      );
+
+    case 'float4':
+    case 'double4':
+    case 'int4':
+    case 'uint4':
+    case 'long4':
+    case 'ulong4':
+    case 'bool4':
+    case 'floatQ':
+    case 'doubleQ':
+      const parts4 = value.split(',');
+      return (
+        <div className="grid grid-cols-2 gap-2">
+          {['X', 'Y', 'Z', 'W'].map((label, index) => (
+            <Input
+              key={label}
+              type={type.includes('bool') ? 'text' : 'number'}
+              step={type.includes('float') || type.includes('double') ? 'any' : '1'}
+              placeholder={label}
+              value={parts4[index] || ''}
+              onChange={(e) => {
+                const newParts = [...parts4];
+                newParts[index] = e.target.value;
+                onChange(newParts.join(','));
+              }}
+              disabled={disabled}
+            />
+          ))}
+        </div>
+      );
+
+    case 'char':
+      return (
+        <Input
+          type="text"
+          maxLength={1}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Single character"
+          disabled={disabled}
+        />
+      );
+
+    case 'timespan':
+      return (
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="00:00:00 or Days.Hours:Minutes:Seconds"
+          disabled={disabled}
+        />
+      );
+
+    case 'refID':
+      return (
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Reference ID"
+          disabled={disabled}
+        />
+      );
+
+    default:
+      return (
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Enter value..."
+          disabled={disabled}
+        />
+      );
+  }
+};
+
 interface VariableDefinition {
   id: number;
   name: string;
