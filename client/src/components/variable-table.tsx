@@ -67,6 +67,7 @@ function useVariableValues(variables: VariableDefinition[], userId: string) {
     enabled: variables.length > 0 && !!userId,
     refetchOnWindowFocus: false,
     staleTime: 0, // Always refetch to get latest values
+    refetchIntervalInBackground: false
   });
 }
 
