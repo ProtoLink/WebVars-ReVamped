@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Edit, Eye, Trash2, Search, Database, Hash, ToggleLeft, Type } from "lucide-react";
+import { Edit, Eye, Trash2, Search, Database, Hash, ToggleLeft, Type, Copy } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 interface VariableDefinition {
   id: number;
@@ -32,12 +33,23 @@ interface VariableTableProps {
 export function VariableTable({ variables, onEdit, onView, onDelete }: VariableTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const { toast } = useToast();
 
   const filteredVariables = variables.filter(variable => {
     const matchesSearch = variable.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === "all" || variable.type === typeFilter;
     return matchesSearch && matchesType;
   });
+
+  const copyApiUrl = (variable: VariableDefinition) => {
+    const baseUrl = window.location.origin;
+    const apiUrl = `${baseUrl}/api/v1/variables/${variable.name}`;
+    navigator.clipboard.writeText(apiUrl);
+    toast({
+      title: "API URL Copied",
+      description: `API endpoint for "${variable.name}" copied to clipboard`,
+    });
+  };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -160,8 +172,18 @@ export function VariableTable({ variables, onEdit, onView, onDelete }: VariableT
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => copyApiUrl(variable)}
+                        className="text-slate-400 hover:text-blue-600 h-8 w-8 p-0"
+                        title="Copy API URL"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => onEdit(variable)}
                         className="text-slate-400 hover:text-slate-600 h-8 w-8 p-0"
+                        title="Edit Variable"
                       >
                         <Edit className="h-3 w-3" />
                       </Button>
@@ -170,6 +192,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete }: VariableT
                         size="sm"
                         onClick={() => onView(variable)}
                         className="text-slate-400 hover:text-slate-600 h-8 w-8 p-0"
+                        title="View Variable"
                       >
                         <Eye className="h-3 w-3" />
                       </Button>
@@ -178,6 +201,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete }: VariableT
                         size="sm"
                         onClick={() => onDelete(variable)}
                         className="text-slate-400 hover:text-red-600 h-8 w-8 p-0"
+                        title="Delete Variable"
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -243,8 +267,18 @@ export function VariableTable({ variables, onEdit, onView, onDelete }: VariableT
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => copyApiUrl(variable)}
+                        className="text-slate-400 hover:text-blue-600 h-8 w-8 p-0"
+                        title="Copy API URL"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => onEdit(variable)}
                         className="text-slate-400 hover:text-slate-600 h-8 w-8 p-0"
+                        title="Edit Variable"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -253,6 +287,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete }: VariableT
                         size="sm"
                         onClick={() => onView(variable)}
                         className="text-slate-400 hover:text-slate-600 h-8 w-8 p-0"
+                        title="View Variable"
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -261,6 +296,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete }: VariableT
                         size="sm"
                         onClick={() => onDelete(variable)}
                         className="text-slate-400 hover:text-red-600 h-8 w-8 p-0"
+                        title="Delete Variable"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
