@@ -35,7 +35,7 @@ export default function Dashboard() {
   });
 
   // WebSocket connection for real-time updates
-  const { isConnected, lastMessage } = useWebSocket(user?.id as string);
+  const { isConnected, lastMessage } = useWebSocket((user as any)?.id);
 
   // Fetch API key for current user
   const { data: apiKeysData } = useQuery({
@@ -223,7 +223,7 @@ export default function Dashboard() {
               </Button>
               <div className="w-7 h-7 sm:w-8 sm:h-8 bg-slate-200 rounded-full flex items-center justify-center">
                 <span className="text-slate-600 text-xs sm:text-sm font-medium">
-                  {user?.firstName?.[0] || user?.email?.[0] || "U"}
+                  {(user as any)?.firstName?.[0] || (user as any)?.email?.[0] || "U"}
                 </span>
               </div>
             </div>

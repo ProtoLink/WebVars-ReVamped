@@ -26,29 +26,45 @@ export function getSession() {
   });
 }
 
-// Simple mock authentication for development
+// Authentication setup - Mock for development, ready for production Replit Auth
 export async function setupAuth(app: Express) {
   app.use(getSession());
 
-  // Mock login endpoint for development
-  app.get('/api/login', (req: any, res) => {
-    // Create a mock user session
-    req.session.user = {
-      id: 'dev-user-001',
-      email: 'developer@example.com',
-      firstName: 'Dev',
-      lastName: 'User',
-      profileImageUrl: null,
-    };
-    res.redirect('/dashboard');
-  });
-
-  // Mock logout endpoint
-  app.get('/api/logout', (req: any, res) => {
-    req.session.destroy(() => {
-      res.redirect('/');
+  if (process.env.NODE_ENV === 'development') {
+    // Development mock authentication
+    app.get('/api/login', (req: any, res) => {
+      req.session.user = {
+        id: 'dev-user-001',
+        email: 'developer@example.com',
+        firstName: 'Dev',
+        lastName: 'User',
+        profileImageUrl: null,
+      };
+      res.redirect('/dashboard');
     });
-  });
+
+    app.get('/api/logout', (req: any, res) => {
+      req.session.destroy(() => {
+        res.redirect('/');
+      });
+    });
+  } else {
+    // Production: Redirect to setup instructions
+    app.get('/api/login', (req, res) => {
+      res.status(501).json({ 
+        error: 'Authentication not configured',
+        message: 'Please configure Replit Auth for production use',
+        documentation: '/docs/auth-setup'
+      });
+    });
+
+    app.get('/api/logout', (req, res) => {
+      res.status(501).json({ 
+        error: 'Authentication not configured',
+        message: 'Please configure Replit Auth for production use'
+      });
+    });
+  }
 }
 
 export const isAuthenticated: RequestHandler = async (req: any, res, next) => {

@@ -7,6 +7,7 @@ import { insertVariableDefinitionSchema, insertVariableValueSchema, insertWebhoo
 import { z } from "zod";
 import crypto from "crypto";
 import rateLimit from "express-rate-limit";
+import helmet from "helmet";
 
 // Rate limiting middleware
 const apiLimiter = rateLimit({
