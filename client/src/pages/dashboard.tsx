@@ -74,7 +74,7 @@ export default function Dashboard({ userId }: DashboardProps) {
         case "definition_created":
         case "definition_updated":
         case "definition_deleted":
-          queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions", { userId }] });
+          queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
           queryClient.invalidateQueries({ queryKey: ["/api/v1/stats", { userId }] });
           break;
         case "variable_updated":
@@ -95,7 +95,7 @@ export default function Dashboard({ userId }: DashboardProps) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions", { userId }] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/v1/stats", { userId }] });
       toast({
         title: "Variable Created",
@@ -120,7 +120,7 @@ export default function Dashboard({ userId }: DashboardProps) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions", { userId }] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/v1/stats", { userId }] });
       setShowDeleteDialog(false);
       setVariableToDelete(null);

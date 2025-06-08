@@ -314,23 +314,34 @@ export class DatabaseStorage implements IStorage {
     apiRequestsToday: number;
     activeUsers: number;
   }> {
-    // Get total variables for user
-    const [variableCount] = await db
-      .select({ count: count() })
-      .from(variableDefinitions)
-      .where(eq(variableDefinitions.ownerId, userId));
+    // Get all definitions visible to user (same logic as the definitions endpoint)
+    const allDefinitions = await this.getVariableDefinitions();
+    
+    const visibleDefinitions = allDefinitions.filter(def => {
+      // Global variables with "anyone" list permission (visible to all)
+      if (def.listPermission === "anyone") {
+        return true;
+      }
+      // User's own private variables
+      if (def.ownerId === userId && def.listPermission === "definition_owner") {
+        return true;
+      }
+      return false;
+    });
 
-    // Get total values across all user's variables
-    const userDefinitions = await this.getVariableDefinitions(userId);
-    let totalValues = 0;
-    for (const def of userDefinitions) {
+    // Count global variables (those with "anyone" listPermission)
+    const globalVariables = allDefinitions.filter(def => def.listPermission === "anyone");
+
+    // Get total values for global variables
+    let totalGlobalValues = 0;
+    for (const def of globalVariables) {
       const values = await this.getVariableValues(def.id);
-      totalValues += values.length;
+      totalGlobalValues += values.length;
     }
 
     return {
-      totalVariables: variableCount.count,
-      totalValues,
+      totalVariables: visibleDefinitions.length,
+      totalValues: totalGlobalValues,
       apiRequestsToday: 0, // Would need request logging to implement
       activeUsers: 1, // Simplified for now
     };
