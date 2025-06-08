@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -32,6 +33,7 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
     write: true,
     list: false,
   });
+  const [defaultValue, setDefaultValue] = useState("");
 
   const {
     register,
@@ -54,31 +56,160 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
 
   const handleFormSubmit = async (data: FormData) => {
     try {
-      await onSubmit(data);
+      // Set the current default value to the form data
+      setValue("defaultValue", defaultValue);
+      const formData = { ...data, defaultValue };
+      await onSubmit(formData);
       reset();
+      setDefaultValue("");
       setPermissions({ read: true, write: true, list: false });
     } catch (error) {
       console.error("Form submission error:", error);
     }
   };
 
-  const getPlaceholderForType = (type: string) => {
-    switch (type) {
-      case 'string':
-        return 'e.g., "Hello World"';
+  // Reset default value when type changes
+  const handleTypeChange = (newType: string) => {
+    setValue("type", newType as any);
+    setDefaultValue("");
+  };
+
+  const renderDefaultValueInput = () => {
+    switch (selectedType) {
+      case 'color':
+        return (
+          <div className="space-y-2">
+            <div className="flex space-x-2">
+              <Input
+                type="color"
+                value={defaultValue.startsWith('#') ? defaultValue : '#000000'}
+                onChange={(e) => setDefaultValue(e.target.value)}
+                className="w-16 h-10"
+              />
+              <Input
+                type="text"
+                value={defaultValue}
+                onChange={(e) => setDefaultValue(e.target.value)}
+                placeholder="#FF0000 or rgba(255,0,0,1)"
+                className="flex-1"
+              />
+            </div>
+          </div>
+        );
+
+      case 'float3':
+        const float3Val = (() => {
+          try {
+            if (defaultValue.includes(',')) {
+              const parts = defaultValue.split(',').map(p => parseFloat(p.trim()));
+              return { x: parts[0] || 0, y: parts[1] || 0, z: parts[2] || 0 };
+            }
+            return JSON.parse(defaultValue || '{"x":0,"y":0,"z":0}');
+          } catch {
+            return { x: 0, y: 0, z: 0 };
+          }
+        })();
+        
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm">Vector3 (X, Y, Z)</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs">X</Label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={float3Val.x}
+                  onChange={(e) => {
+                    const newVal = { ...float3Val, x: parseFloat(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Y</Label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={float3Val.y}
+                  onChange={(e) => {
+                    const newVal = { ...float3Val, y: parseFloat(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Z</Label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={float3Val.z}
+                  onChange={(e) => {
+                    const newVal = { ...float3Val, z: parseFloat(e.target.value) || 0 };
+                    setDefaultValue(`${newVal.x},${newVal.y},${newVal.z}`);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'bool':
+        return (
+          <div className="space-y-2">
+            <div className="flex items-center space-x-3">
+              <Switch
+                checked={defaultValue === 'true'}
+                onCheckedChange={(checked) => setDefaultValue(checked.toString())}
+              />
+              <span className="text-sm text-slate-600">
+                {defaultValue === 'true' ? 'True' : 'False'}
+              </span>
+            </div>
+          </div>
+        );
+
       case 'int':
-        return 'e.g., 42';
+        return (
+          <Input
+            type="number"
+            step="1"
+            value={defaultValue}
+            onChange={(e) => setDefaultValue(e.target.value)}
+            placeholder="e.g., 42"
+          />
+        );
+
       case 'float':
       case 'double':
-        return 'e.g., 3.14';
-      case 'bool':
-        return 'true or false';
-      case 'color':
-        return 'e.g., [1;0;0;1;sRGB]';
+        return (
+          <Input
+            type="number"
+            step="0.001"
+            value={defaultValue}
+            onChange={(e) => setDefaultValue(e.target.value)}
+            placeholder="e.g., 3.14"
+          />
+        );
+
       case 'datetime':
-        return 'e.g., 2024-01-01T00:00:00Z';
+        return (
+          <Input
+            type="datetime-local"
+            value={defaultValue}
+            onChange={(e) => setDefaultValue(e.target.value)}
+          />
+        );
+
       default:
-        return 'Enter default value';
+        return (
+          <Input
+            type="text"
+            value={defaultValue}
+            onChange={(e) => setDefaultValue(e.target.value)}
+            placeholder={selectedType === 'string' ? 'e.g., "Hello World"' : 'Enter default value'}
+          />
+        );
     }
   };
 
@@ -108,7 +239,7 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
             <Label htmlFor="type" className="block text-sm font-medium text-slate-700 mb-1">
               Data Type
             </Label>
-            <Select onValueChange={(value) => setValue("type", value as any)} defaultValue="string">
+            <Select onValueChange={handleTypeChange} defaultValue="string">
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -126,11 +257,7 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
             <Label htmlFor="defaultValue" className="block text-sm font-medium text-slate-700 mb-1">
               Default Value
             </Label>
-            <Input
-              id="defaultValue"
-              placeholder={getPlaceholderForType(selectedType)}
-              {...register("defaultValue")}
-            />
+            {renderDefaultValueInput()}
           </div>
 
           <div>
