@@ -441,23 +441,23 @@ export default function Dashboard() {
                       All API requests require a userId parameter:
                     </p>
                     <code className="bg-slate-100 dark:bg-slate-800 p-2 rounded block">
-                      GET /api/v1/variables/player_score?userId={userId}
+                      {`GET /api/v1/variables/player_score?userId=${userId}`}
                     </code>
                   </div>
                   
                   <div>
                     <h3 className="font-semibold mb-2">Example: Get Variable Value</h3>
                     <code className="bg-slate-100 dark:bg-slate-800 p-2 rounded block">
-                      curl -X GET "{window.location.origin}/api/v1/variables/player_score?userId={userId}"
+                      {`curl -X GET "${window.location.origin}/api/v1/variables/player_score?userId=${userId}"`}
                     </code>
                   </div>
                   
                   <div>
                     <h3 className="font-semibold mb-2">Example: Set Variable Value</h3>
                     <code className="bg-slate-100 dark:bg-slate-800 p-2 rounded block text-xs">
-                      curl -X POST "{window.location.origin}/api/v1/variables/player_score?userId={userId}" \<br/>
-                      &nbsp;&nbsp;-H "Content-Type: application/json" \<br/>
-                      &nbsp;&nbsp;-d '{{"value": "1500"}}'
+                      <div>{`curl -X POST "${window.location.origin}/api/v1/variables/player_score?userId=${userId}" \\`}</div>
+                      <div>&nbsp;&nbsp;-H "Content-Type: application/json" \</div>
+                      <div>&nbsp;&nbsp;-d '{"{"}"value": "1500"{"}"}'</div>
                     </code>
                   </div>
                 </CardContent>
