@@ -315,7 +315,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/v1/definitions/:name', authenticateApiKey, async (req: any, res) => {
+  app.put('/api/v1/definitions/:name', authenticateRequest, async (req: any, res) => {
     try {
       const { name } = req.params;
       const validatedData = insertVariableDefinitionSchema.parse({
@@ -347,7 +347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/v1/definitions/:name', authenticateApiKey, async (req: any, res) => {
+  app.patch('/api/v1/definitions/:name', authenticateRequest, async (req: any, res) => {
     try {
       const { name } = req.params;
       const definition = await storage.getVariableDefinition(name);
@@ -375,7 +375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/v1/definitions/:name', authenticateApiKey, async (req: any, res) => {
+  app.delete('/api/v1/definitions/:name', authenticateRequest, async (req: any, res) => {
     try {
       const { name } = req.params;
       const definition = await storage.getVariableDefinition(name);
