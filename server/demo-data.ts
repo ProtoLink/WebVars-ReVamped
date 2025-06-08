@@ -4,7 +4,7 @@ export async function createDemoData(userId: string) {
   // Create sample variable definitions that showcase different use cases
   const demoVariables = [
     {
-      name: "player_score",
+      name: `${userId}_player_score`,
       type: "string",
       defaultValue: "1500",
       ownerId: userId,
@@ -14,7 +14,7 @@ export async function createDemoData(userId: string) {
       listPermission: "definition_owner"
     },
     {
-      name: "game_settings",
+      name: `${userId}_game_settings`,
       type: "string",
       defaultValue: '{"difficulty":"normal","volume":0.8}',
       ownerId: userId,
@@ -24,7 +24,7 @@ export async function createDemoData(userId: string) {
       listPermission: "definition_owner"
     },
     {
-      name: "is_online",
+      name: `${userId}_is_online`,
       type: "string",
       defaultValue: "true",
       ownerId: userId,
@@ -34,7 +34,7 @@ export async function createDemoData(userId: string) {
       listPermission: "definition_owner"
     },
     {
-      name: "avatar_height",
+      name: `${userId}_avatar_height`,
       type: "string",
       defaultValue: "1.75",
       ownerId: userId,
@@ -44,7 +44,7 @@ export async function createDemoData(userId: string) {
       listPermission: "definition_owner"
     },
     {
-      name: "world_preferences",
+      name: `${userId}_world_preferences`,
       type: "string",
       defaultValue: '{"theme":"cyberpunk","lighting":"dynamic"}',
       ownerId: userId,
@@ -69,7 +69,7 @@ export async function createDemoData(userId: string) {
       console.log(`Created demo variable: ${variable.name}`);
       
       // Create initial values for some variables
-      if (variable.name === "player_score") {
+      if (variable.name === `${userId}_player_score`) {
         const definition = await storage.getVariableDefinition(variable.name);
         if (definition) {
           await storage.setVariableValue({
@@ -80,7 +80,7 @@ export async function createDemoData(userId: string) {
         }
       }
       
-      if (variable.name === "is_online") {
+      if (variable.name === `${userId}_is_online`) {
         const definition = await storage.getVariableDefinition(variable.name);
         if (definition) {
           await storage.setVariableValue({
