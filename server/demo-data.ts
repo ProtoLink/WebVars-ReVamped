@@ -5,13 +5,13 @@ export async function createDemoData(userId: string) {
   const demoVariables = [
     {
       name: "player_score",
-      type: "int",
+      type: "string",
       defaultValue: "1500",
       ownerId: userId,
       ownerType: "user",
-      readPermission: "public",
-      writePermission: "owner", 
-      listPermission: "public"
+      readPermission: "variable_owner",
+      writePermission: "variable_owner", 
+      listPermission: "definition_owner"
     },
     {
       name: "game_settings",
@@ -19,29 +19,29 @@ export async function createDemoData(userId: string) {
       defaultValue: '{"difficulty":"normal","volume":0.8}',
       ownerId: userId,
       ownerType: "user",
-      readPermission: "friends",
-      writePermission: "owner",
-      listPermission: "friends"
+      readPermission: "variable_owner",
+      writePermission: "variable_owner",
+      listPermission: "definition_owner"
     },
     {
       name: "is_online",
-      type: "bool",
+      type: "string",
       defaultValue: "true",
       ownerId: userId,
       ownerType: "user", 
-      readPermission: "public",
-      writePermission: "owner",
-      listPermission: "public"
+      readPermission: "variable_owner",
+      writePermission: "variable_owner",
+      listPermission: "definition_owner"
     },
     {
       name: "avatar_height",
-      type: "float",
+      type: "string",
       defaultValue: "1.75",
       ownerId: userId,
       ownerType: "user",
-      readPermission: "public",
-      writePermission: "owner",
-      listPermission: "public"
+      readPermission: "variable_owner",
+      writePermission: "variable_owner",
+      listPermission: "definition_owner"
     },
     {
       name: "world_preferences",
@@ -49,67 +49,51 @@ export async function createDemoData(userId: string) {
       defaultValue: '{"theme":"cyberpunk","lighting":"dynamic"}',
       ownerId: userId,
       ownerType: "user",
-      readPermission: "private",
-      writePermission: "owner",
-      listPermission: "private"
-    },
-    {
-      name: "avatar_color",
-      type: "color",
-      defaultValue: "#4A90E2",
-      ownerId: userId,
-      ownerType: "user",
-      readPermission: "public",
-      writePermission: "owner",
-      listPermission: "public"
-    },
-    {
-      name: "player_position",
-      type: "float3",
-      defaultValue: "0.0,1.75,0.0",
-      ownerId: userId,
-      ownerType: "user",
-      readPermission: "public",
-      writePermission: "owner",
-      listPermission: "public"
-    },
-    {
-      name: "ui_anchor_point",
-      type: "float2",
-      defaultValue: "0.5,0.5",
-      ownerId: userId,
-      ownerType: "user",
-      readPermission: "public",
-      writePermission: "owner",
-      listPermission: "public"
+      readPermission: "variable_owner",
+      writePermission: "variable_owner",
+      listPermission: "definition_owner"
     }
   ];
 
   // Create the variable definitions
   for (const variable of demoVariables) {
     try {
+      // Check if variable already exists
+      const existing = await storage.getVariableDefinition(variable.name);
+      if (existing) {
+        console.log(`Demo variable ${variable.name} already exists, skipping...`);
+        continue;
+      }
+      
       await storage.createVariableDefinition(variable);
+      console.log(`Created demo variable: ${variable.name}`);
       
       // Create initial values for some variables
       if (variable.name === "player_score") {
-        await storage.setVariableValue({
-          definitionId: (await storage.getVariableDefinition(variable.name))!.id,
-          ownerId: userId,
-          value: "2100"
-        });
+        const definition = await storage.getVariableDefinition(variable.name);
+        if (definition) {
+          await storage.setVariableValue({
+            definitionId: definition.id,
+            ownerId: userId,
+            value: "2100"
+          });
+        }
       }
       
       if (variable.name === "is_online") {
-        await storage.setVariableValue({
-          definitionId: (await storage.getVariableDefinition(variable.name))!.id,
-          ownerId: userId,
-          value: "true"
-        });
+        const definition = await storage.getVariableDefinition(variable.name);
+        if (definition) {
+          await storage.setVariableValue({
+            definitionId: definition.id,
+            ownerId: userId,
+            value: "true"
+          });
+        }
       }
     } catch (error) {
-      console.log(`Demo variable ${variable.name} may already exist, skipping...`);
+      console.error(`Error creating demo variable ${variable.name}:`, error);
     }
   }
 
-  console.log(`Created demo data for user ${userId}`);
+  console.log(`Demo data creation completed for user ${userId}`);
 }
