@@ -523,9 +523,20 @@ export default function Dashboard() {
             </div>
             <VariableTable
               variables={variables}
-              onEdit={(variable) => console.log("Edit", variable)}
-              onView={(variable) => console.log("View", variable)}
-              onDelete={(variable) => console.log("Delete", variable)}
+              onEdit={(variable) => {
+                setSelectedVariable(variable);
+                setEditorMode('edit');
+                setShowEditor(true);
+              }}
+              onView={(variable) => {
+                setSelectedVariable(variable);
+                setEditorMode('view');
+                setShowEditor(true);
+              }}
+              onDelete={(variable) => {
+                setVariableToDelete(variable);
+                setShowDeleteDialog(true);
+              }}
             />
           </div>
         )}
@@ -822,6 +833,39 @@ export default function Dashboard() {
           onClose={() => setShowEditor(false)}
           mode={editorMode}
         />
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Delete Variable</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-slate-600">
+                Are you sure you want to delete the variable "{variableToDelete?.name}"? This action cannot be undone.
+              </p>
+              <div className="flex space-x-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (variableToDelete) {
+                      deleteVariableMutation.mutate(variableToDelete.id);
+                    }
+                  }}
+                  disabled={deleteVariableMutation.isPending}
+                >
+                  {deleteVariableMutation.isPending ? 'Deleting...' : 'Delete'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* New API Key Display Modal */}
         <Dialog open={showNewKeyDialog} onOpenChange={setShowNewKeyDialog}>

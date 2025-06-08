@@ -106,27 +106,7 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest("DELETE", `/api/v1/definitions/${variable?.id}`, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/v1/stats"] });
-      toast({
-        title: "Variable Deleted",
-        description: `${variable?.name} has been deleted successfully`,
-      });
-      onClose();
-    },
-    onError: (error) => {
-      toast({
-        title: "Delete Failed",
-        description: error.message || "Failed to delete variable",
-        variant: "destructive",
-      });
-    },
-  });
+
 
   const renderValueInput = () => {
     if (!variable) return null;
@@ -340,22 +320,13 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
 
           <div className="flex space-x-2 pt-4">
             {mode === 'edit' && (
-              <>
-                <Button
-                  onClick={() => updateMutation.mutate(value)}
-                  disabled={updateMutation.isPending}
-                  className="flex-1"
-                >
-                  {updateMutation.isPending ? 'Updating...' : 'Update'}
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => deleteMutation.mutate()}
-                  disabled={deleteMutation.isPending}
-                >
-                  {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-                </Button>
-              </>
+              <Button
+                onClick={() => updateMutation.mutate(value)}
+                disabled={updateMutation.isPending}
+                className="flex-1"
+              >
+                {updateMutation.isPending ? 'Updating...' : 'Update'}
+              </Button>
             )}
             <Button variant="outline" onClick={onClose}>
               {mode === 'edit' ? 'Cancel' : 'Close'}
