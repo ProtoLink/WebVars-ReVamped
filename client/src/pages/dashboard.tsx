@@ -45,6 +45,7 @@ export default function Dashboard() {
   const [selectedTestKey, setSelectedTestKey] = useState<string>("");
   const [apiTestLoading, setApiTestLoading] = useState(false);
   const [apiTestResult, setApiTestResult] = useState<any>(null);
+  const [storedKeys, setStoredKeys] = useState<{[keyId: string]: string}>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -159,10 +160,16 @@ export default function Dashboard() {
       setShowApiKeyDialog(false);
       setNewApiKeyName("");
       
-      // Store the newly created key to show to user
+      // Store the newly created key to show to user and for testing
       if (response.data && response.data.key) {
         setNewlyCreatedKey(response.data.key);
         setShowNewKeyDialog(true);
+        
+        // Store the actual key for testing purposes
+        setStoredKeys(prev => ({
+          ...prev,
+          [response.data.id]: response.data.key
+        }));
       }
       
       toast({
@@ -232,13 +239,13 @@ export default function Dashboard() {
     setApiTestResult(null);
     
     try {
-      const selectedKey = apiKeys.find((key: any) => key.id.toString() === selectedTestKey);
-      if (!selectedKey) {
-        throw new Error('Selected API key not found');
+      const actualKey = storedKeys[selectedTestKey];
+      if (!actualKey) {
+        throw new Error('API key not available for testing. Please create a new key to test with.');
       }
 
       // Test with query parameter (Resonite style)
-      const testUrl = `${endpoint}?key=${selectedKey.keyHash}`;
+      const testUrl = `${endpoint}?key=${actualKey}`;
       
       const response = await fetch(testUrl, {
         method,
@@ -862,6 +869,7 @@ Content-Type: application/json`}
                             {apiKeys.map((key: any) => (
                               <SelectItem key={key.id} value={key.id.toString()}>
                                 {key.name} ({key.isActive ? 'Active' : 'Inactive'})
+                                {storedKeys[key.id] ? ' - Ready for testing' : ' - Key not available'}
                               </SelectItem>
                             ))}
                           </SelectContent>
