@@ -370,9 +370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { name } = req.params;
       const definition = await getVariableDefinition(name);
-      
-      // For read-only variables, always use the creator's value regardless of who's requesting
-      const ownerId = definition.readOnly ? definition.ownerId : (req.query.owner || req.userId);
+      const ownerId = req.query.owner || req.userId;
       
       const value = await storage.getVariableValue(definition.id, ownerId);
       
@@ -459,18 +457,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { name } = req.params;
       const definition = await getVariableDefinition(name);
       
-      // Check if variable is read-only and reject API changes
-      if (definition.readOnly) {
-        const wantsJson = req.headers.accept?.includes('application/json') || req.query.format === 'json';
-        if (wantsJson) {
-          return res.status(403).json({ 
-            error: 'This variable is read-only and can only be modified through the web dashboard' 
-          });
-        } else {
-          return res.status(403).set('Content-Type', 'text/plain').send('Error: Variable is read-only');
-        }
-      }
-      
       // Handle both JSON and plain text input
       let value;
       const contentType = req.headers['content-type'] || '';
@@ -539,97 +525,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const wantsJson = req.headers.accept?.includes('application/json') || req.query.format === 'json';
       if (wantsJson) {
         res.status(500).json({ error: 'Failed to set variable value' });
-      } else {
-        res.status(500).set('Content-Type', 'text/plain').send('Error');
-      }
-    }
-  });
-
-  app.put('/api/v1/variables/:name', extractUserId, async (req: any, res) => {
-    try {
-      const { name } = req.params;
-      const definition = await getVariableDefinition(name);
-      
-      // Check if variable is read-only and reject API changes
-      if (definition.readOnly) {
-        const wantsJson = req.headers.accept?.includes('application/json') || req.query.format === 'json';
-        if (wantsJson) {
-          return res.status(403).json({ 
-            error: 'This variable is read-only and can only be modified through the web dashboard' 
-          });
-        } else {
-          return res.status(403).set('Content-Type', 'text/plain').send('Error: Variable is read-only');
-        }
-      }
-      
-      // Handle both JSON and plain text input
-      let value;
-      const contentType = req.headers['content-type'] || '';
-      
-      if (contentType.includes('application/json') && typeof req.body === 'object') {
-        // JSON input: extract value from body object
-        value = req.body.value;
-      } else {
-        // Plain text input: use entire body as value
-        value = req.body;
-        
-        // Convert numerical enum index to enum name for text/plain input
-        if (definition.type === 'enum' && definition.enumType && isNumericString(String(value))) {
-          const enumIndex = parseInt(String(value), 10);
-          const enumName = convertEnumIndexToName(definition.enumType, enumIndex);
-          value = enumName;
-        }
-      }
-      
-      const ownerId = (contentType.includes('application/json') && typeof req.body === 'object' ? req.body.owner : undefined) || req.userId;
-
-      if (value === undefined || value === null || value === '') {
-        const wantsJson = req.headers.accept?.includes('application/json') || req.query.format === 'json';
-        if (wantsJson) {
-          return res.status(400).json({ error: 'Value is required' });
-        } else {
-          return res.status(400).set('Content-Type', 'text/plain').send('Error: Value is required');
-        }
-      }
-
-      const variableValue = await storage.setVariableValue({
-        definitionId: definition.id,
-        ownerId,
-        value: String(value)
-      });
-
-      broadcastUpdate('variable_updated', {
-        name: definition.name,
-        value: variableValue.value,
-        owner: variableValue.ownerId
-      });
-
-      // Check if request wants JSON response (for dashboard/API explorer)
-      // Default to text/plain for Resonite unless explicitly requesting JSON
-      const wantsJson = req.query.format === 'json' ||
-                       (req.headers.accept && req.headers.accept.includes('application/json')) ||
-                       req.headers['x-requested-with'] === 'XMLHttpRequest';
-      
-      if (wantsJson) {
-        res.json({
-          success: true,
-          data: {
-            name: definition.name,
-            type: definition.type,
-            value: variableValue.value,
-            owner: variableValue.ownerId,
-            updatedAt: variableValue.updatedAt
-          }
-        });
-      } else {
-        // Return success message for Resonite webhooks
-        res.set('Content-Type', 'text/plain').send('OK');
-      }
-    } catch (error) {
-      console.error('Update variable error:', error);
-      const wantsJson = req.headers.accept?.includes('application/json') || req.query.format === 'json';
-      if (wantsJson) {
-        res.status(500).json({ error: 'Failed to update variable value' });
       } else {
         res.status(500).set('Content-Type', 'text/plain').send('Error');
       }

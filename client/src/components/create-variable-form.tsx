@@ -8,7 +8,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { SUPPORTED_DATA_TYPES, PERMISSION_TYPES, RESONITE_ENUMS } from "@shared/schema";
 import { RESONITE_ENUM_VALUES, getEnumCategories, getEnumValues } from "@shared/resonite-enums";
 
@@ -331,7 +330,6 @@ const formSchema = z.object({
   scope: z.enum(["private", "global"]),
   type: z.string().min(1, "Variable type is required"),
   enumType: z.string().optional(), // For enum types
-  readOnly: z.boolean().default(false), // Read-only toggle
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -353,7 +351,6 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
       scope: "private",
       type: "string",
       enumType: "",
-      readOnly: false,
     },
   });
 
@@ -586,30 +583,6 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
                 </div>
               </FormControl>
               <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="readOnly"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>
-                  Read-Only Variable
-                </FormLabel>
-                <p className="text-sm text-muted-foreground">
-                  When enabled, this variable can only be modified through the web dashboard, not via API calls. 
-                  Perfect for configuration values that should be controlled centrally.
-                </p>
-              </div>
             </FormItem>
           )}
         />
