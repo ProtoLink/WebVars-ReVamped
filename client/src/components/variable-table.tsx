@@ -74,6 +74,8 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   
+
+  
   // Fetch user-specific variable values
   const { data: variableValues = {} } = useVariableValues(variables, userId);
 
@@ -158,6 +160,11 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                         >
                           {variable.listPermission === "anyone" ? "Global" : "Private"}
                         </Badge>
+                        {variable.ownerId === userId && (
+                          <Badge variant="outline" className="text-xs bg-yellow-50 border-yellow-200 text-yellow-800">
+                            Owner
+                          </Badge>
+                        )}
                       </div>
                       <div className="text-xs text-slate-600 dark:text-slate-400">
                         {variable.listPermission === "anyone" ? "Accessible to all users" : "Only visible to owner"}
@@ -284,7 +291,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                             {variable.listPermission === "anyone" ? "Global" : "Private"}
                           </Badge>
                           {variable.ownerId === userId && (
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs bg-yellow-50 border-yellow-200 text-yellow-800">
                               Owner
                             </Badge>
                           )}
