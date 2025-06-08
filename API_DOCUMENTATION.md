@@ -225,6 +225,78 @@ OK
 }
 ```
 
+#### Update Variable Definition (PUT)
+
+**JSON Format (Dashboard/API Integration):**
+```http
+PUT /api/v1/variables/{name}
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "value": "3000",
+  "defaultValue": "1000",
+  "readPermission": "public",
+  "writePermission": "owner"
+}
+```
+
+**Plain Text Format (Resonite Integration):**
+```http
+PUT /api/v1/variables/{name}?userId=YOUR_USER_ID
+Content-Type: text/plain
+```
+
+**Request Body:**
+```
+3000
+```
+
+**For Enum Variables (Plain Text):**
+```
+3
+```
+*Note: Use numerical index (0, 1, 2...) which gets converted to enum name automatically*
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 5,
+    "name": "player_score",
+    "type": "int",
+    "value": "3000",
+    "defaultValue": "1000",
+    "ownerId": "user-123",
+    "updatedAt": "2024-01-01T12:30:00Z"
+  }
+}
+```
+
+#### Delete Variable (DELETE)
+
+```http
+DELETE /api/v1/variables/{name}
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Alternative Authentication (Unsafe Variables):**
+```http
+DELETE /api/v1/variables/{name}?userId=YOUR_USER_ID
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Variable deleted successfully"
+}
+```
+
 #### List All Values for Variable
 ```http
 GET /api/v1/variables/{name}/values
@@ -473,6 +545,50 @@ curl -X POST "https://your-deployment.replit.app/api/v1/variables/player_score?u
 # Set enum variable with numerical index (converts to enum name)
 curl -X POST "https://your-deployment.replit.app/api/v1/variables/blend_mode?userId=Tacusin" \
      -d "2"
+```
+
+#### Update Variable Value - JSON Format
+```bash
+# Update variable with JSON
+curl -X PUT \
+     -H "Authorization: Bearer wv_your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{"value":"3500","defaultValue":"1000"}' \
+     https://your-deployment.replit.app/api/v1/variables/player_score
+
+# Update variable with userId and JSON
+curl -X PUT "https://your-deployment.replit.app/api/v1/variables/player_score?userId=Tacusin" \
+     -H "Content-Type: application/json" \
+     -d '{"value": "2000"}'
+```
+
+#### Update Variable Value - Plain Text Format (Resonite)
+```bash
+# Update variable with plain text
+curl -X PUT \
+     -H "Authorization: Bearer wv_your_api_key_here" \
+     -H "Content-Type: text/plain" \
+     -d "3500" \
+     https://your-deployment.replit.app/api/v1/variables/player_score
+
+# Update variable with userId and plain text (Resonite style)
+curl -X PUT "https://your-deployment.replit.app/api/v1/variables/player_score?userId=Tacusin" \
+     -d "2000"
+
+# Update enum variable with numerical index
+curl -X PUT "https://your-deployment.replit.app/api/v1/variables/blend_mode?userId=Tacusin" \
+     -d "5"
+```
+
+#### Delete Variable
+```bash
+# Delete variable with API key
+curl -X DELETE \
+     -H "Authorization: Bearer wv_your_api_key_here" \
+     https://your-deployment.replit.app/api/v1/variables/player_score
+
+# Delete variable with userId (unsafe authentication)
+curl -X DELETE "https://your-deployment.replit.app/api/v1/variables/player_score?userId=Tacusin"
 ```
 
 ## Resonite Integration
