@@ -26,7 +26,11 @@ const navItems = [
   { id: "documentation", label: "Documentation", icon: FileText },
 ];
 
-export default function Dashboard() {
+interface DashboardProps {
+  userId: string;
+}
+
+export default function Dashboard({ userId }: DashboardProps) {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedVariable, setSelectedVariable] = useState<any>(null);
   const [editorMode, setEditorMode] = useState<'edit' | 'view'>('view');
@@ -35,20 +39,6 @@ export default function Dashboard() {
   const [variableToDelete, setVariableToDelete] = useState<any>(null);
   const [apiTestLoading, setApiTestLoading] = useState(false);
   const [apiTestResult, setApiTestResult] = useState<any>(null);
-  const [userId, setUserId] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('userId') || 'user123';
-    }
-    return 'user123';
-  }); // Default user ID with localStorage persistence
-
-  // Save userId to localStorage whenever it changes
-  const handleUserIdChange = (newUserId: string) => {
-    setUserId(newUserId);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('userId', newUserId);
-    }
-  };
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -267,32 +257,43 @@ export default function Dashboard() {
           
           <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
             <div className="flex items-center space-x-2">
-              <Label htmlFor="userId" className="text-sm font-medium whitespace-nowrap">User ID:</Label>
-              <Input
-                id="userId"
-                value={userId}
-                onChange={(e) => handleUserIdChange(e.target.value)}
-                placeholder="Enter user ID"
-                className="flex-1 sm:w-32"
-              />
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                Logged in as: <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-xs">{userId}</span>
+              </span>
             </div>
             
-            <Button 
-              onClick={() => createDemoDataMutation.mutate()}
-              disabled={createDemoDataMutation.isPending}
-              variant="outline"
-              size="sm"
-              className="w-full sm:w-auto"
-            >
-              {createDemoDataMutation.isPending ? (
-                <LoadingSpinner size="sm" />
-              ) : (
-                <>
-                  <Play className="h-4 w-4 mr-2" />
-                  Demo Data
-                </>
-              )}
-            </Button>
+            <div className="flex space-x-2">
+              <Button 
+                onClick={() => createDemoDataMutation.mutate()}
+                disabled={createDemoDataMutation.isPending}
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto"
+              >
+                {createDemoDataMutation.isPending ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2" />
+                    Demo Data
+                  </>
+                )}
+              </Button>
+              
+              <Button 
+                onClick={() => {
+                  apiRequest("POST", "/api/auth/logout").then(() => {
+                    window.location.reload();
+                  });
+                }}
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto"
+              >
+                <User className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </div>

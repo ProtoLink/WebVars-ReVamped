@@ -110,8 +110,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Store user session
-      req.session.userId = user.id;
-      req.session.user = user;
+      (req as any).session.userId = user.id;
+      (req as any).session.user = user;
 
       res.json({
         success: true,
@@ -147,8 +147,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.createUser(username, password);
 
       // Store user session
-      req.session.userId = user.id;
-      req.session.user = user;
+      (req as any).session.userId = user.id;
+      (req as any).session.user = user;
 
       res.json({
         success: true,
@@ -165,7 +165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post('/api/auth/logout', (req, res) => {
-    req.session.destroy((err) => {
+    (req as any).session.destroy((err: any) => {
       if (err) {
         return res.status(500).json({ error: 'Logout failed' });
       }
@@ -174,12 +174,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get('/api/auth/me', (req, res) => {
-    if (req.session?.userId) {
+    const session = (req as any).session;
+    if (session?.userId) {
       res.json({
         success: true,
         data: {
-          id: req.session.userId,
-          ...req.session.user
+          id: session.userId,
+          ...session.user
         }
       });
     } else {
