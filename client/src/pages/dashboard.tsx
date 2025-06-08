@@ -3,9 +3,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Settings, Eye, FileText, BarChart3, Cloud, Database } from "lucide-react";
+import { Plus, Settings, Eye, FileText, BarChart3, Cloud, Database, User, Key, Shield, Bell, Palette, Copy, Trash2, RefreshCw } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -128,6 +132,48 @@ export default function Dashboard() {
       toast({
         title: "Error",
         description: error.message || "Failed to create demo data",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // API key creation mutation
+  const createApiKeyMutation = useMutation({
+    mutationFn: async (name: string) => {
+      return await apiRequest("POST", "/api/v1/api-keys", { name });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/api-keys"] });
+      toast({
+        title: "API Key Created",
+        description: "New API key has been generated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create API key",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // API key deletion mutation
+  const deleteApiKeyMutation = useMutation({
+    mutationFn: async (keyId: number) => {
+      return await apiRequest("DELETE", `/api/v1/api-keys/${keyId}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/api-keys"] });
+      toast({
+        title: "API Key Deleted",
+        description: "API key has been revoked successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete API key",
         variant: "destructive",
       });
     },
@@ -339,22 +385,48 @@ export default function Dashboard() {
                     <CardTitle className="text-lg font-semibold text-slate-900">API Integration</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">API Key</label>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="password"
-                          value={apiKeys[0]?.name || "No API key"}
-                          className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono bg-slate-50"
-                          readOnly
-                        />
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                    {apiKeys.length > 0 ? (
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Latest API Key</label>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="password"
+                            value={`${apiKeys[0]?.name} (${apiKeys[0]?.keyHash?.substring(0, 8)}...)`}
+                            className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono bg-slate-50"
+                            readOnly
+                          />
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              navigator.clipboard.writeText(apiKeys[0]?.keyHash || '');
+                              toast({
+                                title: "Copied",
+                                description: "API key copied to clipboard",
+                              });
+                            }}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2">
+                          Created: {new Date(apiKeys[0]?.createdAt).toLocaleDateString()}
+                        </p>
                       </div>
-                    </div>
-                    <Button variant="outline" className="w-full">
-                      Generate New Key
+                    ) : (
+                      <div className="text-center py-4">
+                        <Key className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+                        <p className="text-sm text-slate-600 mb-3">No API keys found</p>
+                        <p className="text-xs text-slate-500">Create an API key to access the REST API</p>
+                      </div>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => setActiveTab("settings")}
+                    >
+                      <Key className="h-4 w-4 mr-2" />
+                      Manage API Keys
                     </Button>
                   </CardContent>
                 </Card>
@@ -455,6 +527,220 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {activeTab === "settings" && (
+          <div className="space-y-8">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">Settings</h1>
+              <p className="text-slate-600 mt-1">Manage your account settings and preferences</p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Profile Settings */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <User className="h-5 w-5" />
+                    <span>Profile Settings</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input
+                        id="firstName"
+                        value={(user as any)?.firstName || ""}
+                        placeholder="Enter your first name"
+                        readOnly
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input
+                        id="lastName"
+                        value={(user as any)?.lastName || ""}
+                        placeholder="Enter your last name"
+                        readOnly
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={(user as any)?.email || ""}
+                      placeholder="Enter your email"
+                      readOnly
+                    />
+                  </div>
+                  <div className="text-sm text-slate-600">
+                    Profile information is managed through Replit authentication.
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* API Key Management */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Key className="h-5 w-5" />
+                    <span>API Keys</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    {apiKeys.length === 0 ? (
+                      <div className="text-center py-4">
+                        <Key className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+                        <p className="text-sm text-slate-600">No API keys found</p>
+                      </div>
+                    ) : (
+                      apiKeys.map((key: any) => (
+                        <div key={key.id} className="flex items-center justify-between p-3 border border-slate-200 rounded-lg">
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">{key.name}</div>
+                            <div className="text-xs text-slate-500">
+                              Created: {new Date(key.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                navigator.clipboard.writeText(key.keyHash);
+                                toast({
+                                  title: "Copied",
+                                  description: "API key copied to clipboard",
+                                });
+                              }}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => deleteApiKeyMutation.mutate(key.id)}
+                              disabled={deleteApiKeyMutation.isPending}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      const keyName = prompt("Enter a name for your API key:");
+                      if (keyName) {
+                        createApiKeyMutation.mutate(keyName);
+                      }
+                    }}
+                    disabled={createApiKeyMutation.isPending}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {createApiKeyMutation.isPending ? "Creating..." : "Generate New Key"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Security Settings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Shield className="h-5 w-5" />
+                    <span>Security</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-sm font-medium">Two-Factor Authentication</Label>
+                      <p className="text-xs text-slate-600">Add an extra layer of security</p>
+                    </div>
+                    <Switch disabled />
+                  </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Session Management</Label>
+                    <Button variant="outline" size="sm" className="w-full">
+                      <RefreshCw className="h-3 w-3 mr-2" />
+                      Logout All Devices
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Notification Preferences */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Bell className="h-5 w-5" />
+                    <span>Notifications</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm font-medium">Variable Updates</Label>
+                        <p className="text-xs text-slate-600">Get notified when variables change</p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm font-medium">API Usage Alerts</Label>
+                        <p className="text-xs text-slate-600">Alerts for high API usage</p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm font-medium">Security Alerts</Label>
+                        <p className="text-xs text-slate-600">Important security notifications</p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Appearance Settings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Palette className="h-5 w-5" />
+                    <span>Appearance</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Theme</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" size="sm" className="h-16">
+                        <div className="text-center">
+                          <div className="w-6 h-6 bg-white border border-slate-300 rounded mx-auto mb-1"></div>
+                          <span className="text-xs">Light</span>
+                        </div>
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-16">
+                        <div className="text-center">
+                          <div className="w-6 h-6 bg-slate-800 rounded mx-auto mb-1"></div>
+                          <span className="text-xs">Dark</span>
+                        </div>
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
 
