@@ -31,7 +31,8 @@ interface VariableEditorProps {
 }
 
 export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEditorProps) {
-  const [value, setValue] = useState(variable?.defaultValue || '');
+  const [value, setValue] = useState('');
+  const [isLoadingValue, setIsLoadingValue] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -84,16 +85,16 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
 
   const updateMutation = useMutation({
     mutationFn: async (newValue: string) => {
-      return await apiRequest("PUT", `/api/v1/definitions/${variable?.id}`, { 
-        defaultValue: newValue 
+      return await apiRequest("POST", `/api/v1/variables/${variable?.name}`, { 
+        value: newValue 
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/v1/stats"] });
       toast({
-        title: "Variable Updated",
-        description: `${variable?.name} has been updated successfully`,
+        title: "Your Value Updated",
+        description: `Your personal value for "${variable?.name}" has been saved`,
       });
       onClose();
     },
@@ -283,11 +284,32 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
     }
   };
 
+  // Load user-specific value when variable changes
   React.useEffect(() => {
-    if (variable) {
-      setValue(variable.defaultValue || '');
+    if (variable && isOpen) {
+      setIsLoadingValue(true);
+      // Fetch the current user's value for this variable
+      fetch(`/api/v1/variables/${variable.name}`, {
+        credentials: 'include'
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setValue(data.data.value || variable.defaultValue || '');
+          } else {
+            // If no user-specific value exists, use default
+            setValue(variable.defaultValue || '');
+          }
+        })
+        .catch(() => {
+          // Fallback to default value on error
+          setValue(variable.defaultValue || '');
+        })
+        .finally(() => {
+          setIsLoadingValue(false);
+        });
     }
-  }, [variable]);
+  }, [variable, isOpen]);
 
   if (!variable) return null;
 
@@ -296,12 +318,12 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'edit' ? 'Edit' : 'View'} Variable: {variable.name}
+            {mode === 'edit' ? 'Set Your Value' : 'Your Value'} for {variable.name}
           </DialogTitle>
           <DialogDescription>
             {mode === 'edit' 
-              ? `Modify the value and settings for the ${variable.type} variable "${variable.name}".`
-              : `View the current value and settings for the ${variable.type} variable "${variable.name}".`
+              ? `Set your personal value for the ${variable.type} variable "${variable.name}". This won't affect other users' values.`
+              : `View your current personal value for the ${variable.type} variable "${variable.name}".`
             }
           </DialogDescription>
         </DialogHeader>
@@ -313,10 +335,17 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
               <div>Type: <span className="font-mono">{variable.type}</span></div>
               <div>Owner: {variable.ownerType}</div>
               <div>Permissions: R:{variable.readPermission} W:{variable.writePermission}</div>
+              <div>Default: <span className="font-mono text-xs bg-slate-100 px-1 rounded">{variable.defaultValue || 'null'}</span></div>
             </div>
           </div>
 
-          {renderValueInput()}
+          {isLoadingValue ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-sm text-slate-600">Loading your value...</div>
+            </div>
+          ) : (
+            renderValueInput()
+          )}
 
           <div className="flex space-x-2 pt-4">
             {mode === 'edit' && (
