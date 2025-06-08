@@ -43,11 +43,11 @@ export function VariableTable({ variables, onEdit, onView, onDelete }: VariableT
 
   const copyApiUrl = (variable: VariableDefinition) => {
     const baseUrl = window.location.origin;
-    const apiUrl = `${baseUrl}/api/v1/variables/${variable.name}`;
+    const apiUrl = `${baseUrl}/api/v1/variables/${variable.name}?key=YOUR_API_KEY`;
     navigator.clipboard.writeText(apiUrl);
     toast({
-      title: "API URL Copied",
-      description: `API endpoint for "${variable.name}" copied to clipboard`,
+      title: "Resonite API URL Copied",
+      description: `URL for "${variable.name}" copied - replace YOUR_API_KEY with your actual key`,
     });
   };
 

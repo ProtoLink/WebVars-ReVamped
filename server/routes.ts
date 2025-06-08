@@ -51,13 +51,23 @@ const authenticateRequest = async (req: any, res: any, next: any) => {
   }
 
   // Fall back to API key authentication
-  const authHeader = req.headers.authorization;
+  let apiKey: string | undefined;
   
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Missing or invalid authorization header' });
+  // Check authorization header first
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    apiKey = authHeader.substring(7);
+  }
+  
+  // Fall back to query parameter for Resonite compatibility
+  if (!apiKey && req.query.key) {
+    apiKey = req.query.key as string;
+  }
+  
+  if (!apiKey) {
+    return res.status(401).json({ error: 'Missing API key. Use Authorization header or ?key= query parameter' });
   }
 
-  const apiKey = authHeader.substring(7);
   const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
   
   try {
@@ -82,13 +92,23 @@ const authenticateRequest = async (req: any, res: any, next: any) => {
 
 // Middleware for API key only authentication (for external API access)
 const authenticateApiKey = async (req: any, res: any, next: any) => {
-  const authHeader = req.headers.authorization;
+  let apiKey: string | undefined;
   
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Missing or invalid authorization header' });
+  // Check authorization header first
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    apiKey = authHeader.substring(7);
+  }
+  
+  // Fall back to query parameter for Resonite compatibility
+  if (!apiKey && req.query.key) {
+    apiKey = req.query.key as string;
+  }
+  
+  if (!apiKey) {
+    return res.status(401).json({ error: 'Missing API key. Use Authorization header or ?key= query parameter' });
   }
 
-  const apiKey = authHeader.substring(7);
   const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
   
   try {

@@ -554,9 +554,17 @@ export default function Dashboard() {
                   <p>Web Variables provide a RESTful API for managing persistent variables that can be accessed both from external applications and within Resonite.</p>
                   
                   <h3>Authentication</h3>
-                  <p>All API requests require authentication using an API key in the Authorization header:</p>
+                  <p>API requests support two authentication methods:</p>
+                  
+                  <h4>For Web Applications (Authorization Header)</h4>
                   <pre className="bg-slate-900 text-green-400 p-4 rounded-lg">
                     {`Authorization: Bearer your-api-key`}
+                  </pre>
+                  
+                  <h4>For Resonite (Query Parameter)</h4>
+                  <p>Since Resonite cannot send custom headers, use the query parameter method:</p>
+                  <pre className="bg-slate-900 text-green-400 p-4 rounded-lg">
+                    {`GET /api/v1/variables/variable_name?key=your-api-key`}
                   </pre>
 
                   <h3>Base URL</h3>
@@ -565,14 +573,35 @@ export default function Dashboard() {
                     {`${window.location.origin}/api/v1`}
                   </pre>
 
+                  <h3>Resonite Integration</h3>
+                  <p>Use the "Copy API" button next to any variable to get the Resonite-compatible URL. In Resonite, use these ProtoFlux nodes:</p>
+                  
+                  <h4>GET Web Variable Node</h4>
+                  <p>To read a variable value in Resonite:</p>
+                  <pre className="bg-slate-900 text-green-400 p-4 rounded-lg">
+                    {`URL: ${window.location.origin}/api/v1/variables/player_score?key=your-api-key
+Method: GET
+Parse as: JSON → data.value`}
+                  </pre>
+                  
+                  <h4>SET Web Variable Node</h4>
+                  <p>To update a variable value from Resonite:</p>
+                  <pre className="bg-slate-900 text-green-400 p-4 rounded-lg">
+                    {`URL: ${window.location.origin}/api/v1/variables/player_score?key=your-api-key
+Method: POST
+Body: {"value": "1500"}
+Content-Type: application/json`}
+                  </pre>
+
                   <h3>Supported Data Types</h3>
-                  <p>Web Variables support all Resonite-compatible data types including:</p>
+                  <p>Web Variables support all Resonite-compatible data types:</p>
                   <ul>
                     <li><code>string</code> - Text values</li>
                     <li><code>int</code>, <code>float</code>, <code>double</code> - Numeric values</li>
-                    <li><code>bool</code> - Boolean values</li>
-                    <li><code>color</code> - Color values</li>
-                    <li><code>datetime</code> - Date and time values</li>
+                    <li><code>bool</code> - Boolean values (true/false)</li>
+                    <li><code>color</code> - Color values (#RRGGBB or rgba())</li>
+                    <li><code>float2</code> - Vector2 values (X,Y coordinates)</li>
+                    <li><code>float3</code> - Vector3 values (X,Y,Z coordinates)</li>
                   </ul>
                 </div>
               </CardContent>
