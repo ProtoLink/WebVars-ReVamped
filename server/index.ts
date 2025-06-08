@@ -4,6 +4,10 @@ import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy for rate limiting
+
+// Add middleware to handle raw text input for variable endpoints
+app.use('/api/v1/variables/:name', express.text({ type: '*/*' }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

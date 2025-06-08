@@ -424,10 +424,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { name } = req.params;
       const definition = await getVariableDefinition(name);
-      const { value } = req.body;
-      const ownerId = req.body.owner || req.userId;
+      
+      // Handle both JSON and plain text input
+      let value;
+      const contentType = req.headers['content-type'] || '';
+      
+      if (contentType.includes('application/json') && typeof req.body === 'object') {
+        // JSON input: extract value from body object
+        value = req.body.value;
+      } else {
+        // Plain text input: use entire body as value
+        value = req.body;
+      }
+      
+      const ownerId = (contentType.includes('application/json') && typeof req.body === 'object' ? req.body.owner : undefined) || req.userId;
 
-      if (value === undefined || value === null) {
+      if (value === undefined || value === null || value === '') {
         const wantsJson = req.headers.accept?.includes('application/json') || req.query.format === 'json';
         if (wantsJson) {
           return res.status(400).json({ error: 'Value is required' });
