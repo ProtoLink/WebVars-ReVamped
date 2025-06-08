@@ -35,7 +35,7 @@ export default function Dashboard() {
   });
 
   // WebSocket connection for real-time updates
-  const { isConnected, lastMessage } = useWebSocket(user?.id);
+  const { isConnected, lastMessage } = useWebSocket(user?.id as string);
 
   // Fetch API key for current user
   const { data: apiKeysData } = useQuery({
@@ -167,14 +167,14 @@ export default function Dashboard() {
     );
   }
 
-  const variables = variablesData?.data || [];
-  const stats = statsData?.data || {
+  const variables = (variablesData as any)?.data || [];
+  const stats = (statsData as any)?.data || {
     totalVariables: 0,
     totalValues: 0,
     apiRequestsToday: 0,
     activeUsers: 1,
   };
-  const apiKeys = apiKeysData?.data || [];
+  const apiKeys = (apiKeysData as any)?.data || [];
 
   return (
     <div className="min-h-screen bg-slate-50">

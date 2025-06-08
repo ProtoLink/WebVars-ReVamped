@@ -51,11 +51,10 @@ A comprehensive REST API system that provides web-accessible interface for Reson
 
 ## 🚨 Critical Issues to Fix
 
-### Authentication Bug
-**Issue**: Session authentication not working properly for dashboard API calls
-**Location**: `server/routes.ts` - `authenticateRequest` middleware
-**Problem**: `req.isAuthenticated()` check failing for logged-in users
-**Impact**: Dashboard shows 401 errors despite successful login
+### ~~Authentication Bug~~ ✅ FIXED
+**Issue**: ~~Session authentication not working properly for dashboard API calls~~
+**Status**: RESOLVED - Session authentication now works correctly
+**Fix Applied**: Updated `authenticateRequest` middleware to check `req.session.user` instead of `req.isAuthenticated()`
 
 ### Mock Data Dependencies
 **Issue**: Using development mock user data
