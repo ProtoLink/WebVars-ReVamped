@@ -36,6 +36,8 @@ export default function Dashboard() {
   const [showEditor, setShowEditor] = useState(false);
   const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
   const [newApiKeyName, setNewApiKeyName] = useState("");
+  const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null);
+  const [showNewKeyDialog, setShowNewKeyDialog] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -145,10 +147,17 @@ export default function Dashboard() {
     mutationFn: async (name: string) => {
       return await apiRequest("POST", "/api/v1/api-keys", { name });
     },
-    onSuccess: (response) => {
+    onSuccess: (response: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/v1/api-keys"] });
       setShowApiKeyDialog(false);
       setNewApiKeyName("");
+      
+      // Store the newly created key to show to user
+      if (response.data && response.data.key) {
+        setNewlyCreatedKey(response.data.key);
+        setShowNewKeyDialog(true);
+      }
+      
       toast({
         title: "API Key Created",
         description: `New API key "${newApiKeyName}" has been generated successfully`,
@@ -639,19 +648,51 @@ export default function Dashboard() {
                       ))
                     )}
                   </div>
-                  <Button
-                    className="w-full"
-                    onClick={() => {
-                      const keyName = prompt("Enter a name for your API key:");
-                      if (keyName) {
-                        createApiKeyMutation.mutate(keyName);
-                      }
-                    }}
-                    disabled={createApiKeyMutation.isPending}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    {createApiKeyMutation.isPending ? "Creating..." : "Generate New Key"}
-                  </Button>
+                  <Dialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog}>
+                    <DialogTrigger asChild>
+                      <Button className="w-full">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Generate New Key
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create New API Key</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="keyName">API Key Name</Label>
+                          <Input
+                            id="keyName"
+                            placeholder="Enter a descriptive name for your API key"
+                            value={newApiKeyName}
+                            onChange={(e) => setNewApiKeyName(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setShowApiKeyDialog(false);
+                              setNewApiKeyName("");
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              if (newApiKeyName.trim()) {
+                                createApiKeyMutation.mutate(newApiKeyName.trim());
+                              }
+                            }}
+                            disabled={createApiKeyMutation.isPending || !newApiKeyName.trim()}
+                          >
+                            {createApiKeyMutation.isPending ? "Creating..." : "Create Key"}
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </CardContent>
               </Card>
 
@@ -756,6 +797,61 @@ export default function Dashboard() {
           onClose={() => setShowEditor(false)}
           mode={editorMode}
         />
+
+        {/* New API Key Display Modal */}
+        <Dialog open={showNewKeyDialog} onOpenChange={setShowNewKeyDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>API Key Created Successfully</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800 font-medium mb-2">
+                  ⚠️ Important: Copy this key now - it won't be shown again
+                </p>
+                <p className="text-xs text-yellow-700">
+                  Store this key securely. You'll need it to authenticate API requests.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Your New API Key</Label>
+                <div className="flex items-center space-x-2">
+                  <Input
+                    type="text"
+                    value={newlyCreatedKey || ""}
+                    readOnly
+                    className="font-mono text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (newlyCreatedKey) {
+                        navigator.clipboard.writeText(newlyCreatedKey);
+                        toast({
+                          title: "Copied",
+                          description: "API key copied to clipboard",
+                        });
+                      }
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => {
+                    setShowNewKeyDialog(false);
+                    setNewlyCreatedKey(null);
+                  }}
+                >
+                  I've Saved My Key
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
