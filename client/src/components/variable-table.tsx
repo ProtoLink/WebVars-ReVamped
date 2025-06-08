@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Edit, Eye, Trash2, Search, Database, Copy } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Edit, Eye, Trash2, Search, Database, Copy, Globe, Lock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -80,12 +81,30 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
               <div className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                      <Database className="h-5 w-5 text-blue-600" />
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      variable.ownerId === "system" 
+                        ? "bg-green-100 dark:bg-green-900/20" 
+                        : "bg-orange-100 dark:bg-orange-900/20"
+                    }`}>
+                      {variable.ownerId === "system" ? (
+                        <Globe className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <Lock className="h-5 w-5 text-orange-600" />
+                      )}
                     </div>
                     <div>
-                      <div className="font-medium text-slate-900 dark:text-white text-sm">{variable.name}</div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400">Variable</div>
+                      <div className="flex items-center space-x-2">
+                        <div className="font-medium text-slate-900 dark:text-white text-sm">{variable.name}</div>
+                        <Badge 
+                          variant={variable.ownerId === "system" ? "default" : "secondary"}
+                          className="text-xs"
+                        >
+                          {variable.ownerId === "system" ? "Global" : "Private"}
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">
+                        {variable.ownerId === "system" ? "Shared variable" : "Personal variable"}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -165,12 +184,30 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                 <TableRow key={variable.id} className="hover:bg-slate-50 dark:hover:bg-slate-800">
                   <TableCell className="py-4 px-4 lg:px-6">
                     <div className="flex items-center">
-                      <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center mr-3">
-                        <Database className="h-5 w-5 text-blue-600" />
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 ${
+                        variable.ownerId === "system" 
+                          ? "bg-green-100 dark:bg-green-900/20" 
+                          : "bg-orange-100 dark:bg-orange-900/20"
+                      }`}>
+                        {variable.ownerId === "system" ? (
+                          <Globe className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <Lock className="h-5 w-5 text-orange-600" />
+                        )}
                       </div>
                       <div>
-                        <div className="font-medium text-slate-900 dark:text-white text-sm">{variable.name}</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400">Variable</div>
+                        <div className="flex items-center space-x-2">
+                          <div className="font-medium text-slate-900 dark:text-white text-sm">{variable.name}</div>
+                          <Badge 
+                            variant={variable.ownerId === "system" ? "default" : "secondary"}
+                            className="text-xs"
+                          >
+                            {variable.ownerId === "system" ? "Global" : "Private"}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400">
+                          {variable.ownerId === "system" ? "Shared variable" : "Personal variable"}
+                        </div>
                       </div>
                     </div>
                   </TableCell>

@@ -233,11 +233,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Variable definition endpoints
   app.get('/api/v1/definitions', extractUserId, async (req: any, res) => {
     try {
-      // Return all globally accessible variable definitions (following Resonite pattern)
-      const definitions = await storage.getVariableDefinitions();
+      // Get all definitions and filter based on permissions
+      const allDefinitions = await storage.getVariableDefinitions();
+      
+      // Filter based on list permissions following Resonite pattern:
+      // - Show global variables (system-owned) with "anyone" list permission
+      // - Show user's own private variables with "definition_owner" permission
+      const visibleDefinitions = allDefinitions.filter(def => {
+        // Global variables with public list permission
+        if (def.ownerId === "system" && def.listPermission === "anyone") {
+          return true;
+        }
+        // User's own private variables
+        if (def.ownerId === req.userId && def.listPermission === "definition_owner") {
+          return true;
+        }
+        return false;
+      });
+      
       res.json({
         success: true,
-        data: definitions
+        data: visibleDefinitions
       });
     } catch (error) {
       console.error('Get definitions error:', error);
