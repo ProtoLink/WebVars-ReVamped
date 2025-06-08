@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Settings, Eye, FileText, BarChart3, Cloud, Database, User, BarChart } from "lucide-react";
+import { Plus, Settings, Eye, FileText, BarChart3, Cloud, Database, User, BarChart, Heart } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -252,6 +252,15 @@ export default function Dashboard({ userId }: DashboardProps) {
             </div>
             
             <div className="flex space-x-2">
+              <Button
+                onClick={() => window.open("/donate", "_blank")}
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto bg-red-50 border-red-200 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-900/30"
+              >
+                <Heart className="h-4 w-4 mr-2" fill="currentColor" />
+                Support
+              </Button>
               <Button 
                 onClick={() => {
                   apiRequest("POST", "/api/auth/logout").then(() => {

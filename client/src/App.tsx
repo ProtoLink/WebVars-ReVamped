@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthForm } from "@/components/auth-form";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
+import DonatePage from "@/pages/donate";
 import { apiRequest } from "@/lib/queryClient";
 
 interface User {
@@ -22,6 +23,9 @@ function AuthenticatedApp({ user }: { user: User }) {
       </Route>
       <Route path="/dashboard">
         {() => <Dashboard userId={user.id} />}
+      </Route>
+      <Route path="/donate">
+        {() => <DonatePage />}
       </Route>
       <Route component={NotFound} />
     </Switch>
