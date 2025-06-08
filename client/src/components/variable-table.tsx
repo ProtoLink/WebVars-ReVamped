@@ -14,6 +14,7 @@ interface VariableDefinition {
   id: number;
   name: string;
   type: string;
+  enumType?: string | null;
   defaultValue: string | null;
   ownerId: string;
   ownerType: string;
