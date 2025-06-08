@@ -298,16 +298,22 @@ export class DatabaseStorage implements IStorage {
 
   // Search
   async searchVariableDefinitions(query: string, ownerId?: string): Promise<VariableDefinition[]> {
-    const baseQuery = db
-      .select()
-      .from(variableDefinitions)
-      .where(like(variableDefinitions.name, `%${query}%`));
-
     if (ownerId) {
-      return await baseQuery.where(eq(variableDefinitions.ownerId, ownerId));
+      return await db
+        .select()
+        .from(variableDefinitions)
+        .where(and(
+          like(variableDefinitions.name, `%${query}%`),
+          eq(variableDefinitions.ownerId, ownerId)
+        ))
+        .orderBy(desc(variableDefinitions.updatedAt));
     }
 
-    return await baseQuery.orderBy(desc(variableDefinitions.updatedAt));
+    return await db
+      .select()
+      .from(variableDefinitions)
+      .where(like(variableDefinitions.name, `%${query}%`))
+      .orderBy(desc(variableDefinitions.updatedAt));
   }
 }
 

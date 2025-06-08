@@ -158,21 +158,21 @@ export default function Dashboard() {
     <div className="min-h-screen bg-slate-50">
       {/* Navigation Header */}
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-8">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-resonite-500 to-resonite-600 rounded-lg flex items-center justify-center">
-                  <Cloud className="text-white h-5 w-5" />
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            <div className="flex items-center space-x-4 sm:space-x-8">
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-resonite-500 to-resonite-600 rounded-lg flex items-center justify-center">
+                  <Cloud className="text-white h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <span className="text-xl font-bold text-slate-800">Web Variables</span>
+                <span className="text-lg sm:text-xl font-bold text-slate-800">Web Variables</span>
               </div>
-              <div className="hidden md:flex space-x-6">
+              <div className="hidden lg:flex space-x-6">
                 {navItems.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`pb-4 ${
+                    className={`pb-4 text-sm ${
                       activeTab === item.id
                         ? "text-resonite-600 font-medium border-b-2 border-resonite-500 -mb-px"
                         : "text-slate-600 hover:text-slate-900"
@@ -183,19 +183,24 @@ export default function Dashboard() {
                 ))}
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <div className="hidden sm:flex items-center space-x-2 text-xs sm:text-sm">
                 <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
                 <span className="text-slate-600">
-                  {isConnected ? 'API Online' : 'API Offline'}
+                  {isConnected ? 'Online' : 'Offline'}
                 </span>
               </div>
-              <Button className="bg-resonite-600 text-white hover:bg-resonite-700">
-                <Plus className="h-4 w-4 mr-2" />
-                New Variable
+              <Button 
+                size="sm"
+                className="bg-resonite-600 text-white hover:bg-resonite-700 text-xs sm:text-sm px-2 sm:px-3"
+                onClick={() => setActiveTab("variables")}
+              >
+                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">New Variable</span>
+                <span className="sm:hidden">New</span>
               </Button>
-              <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center">
-                <span className="text-slate-600 text-sm font-medium">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-slate-200 rounded-full flex items-center justify-center">
+                <span className="text-slate-600 text-xs sm:text-sm font-medium">
                   {user?.firstName?.[0] || user?.email?.[0] || "U"}
                 </span>
               </div>
@@ -204,20 +209,42 @@ export default function Dashboard() {
         </div>
       </nav>
 
+      {/* Mobile Navigation */}
+      <div className="lg:hidden bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6">
+          <div className="flex space-x-1 overflow-x-auto py-2">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-lg whitespace-nowrap text-sm ${
+                  activeTab === item.id
+                    ? "bg-resonite-100 text-resonite-700 font-medium"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <item.icon className="h-4 w-4" />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {activeTab === "dashboard" && (
-          <div className="space-y-8">
+          <div className="space-y-6 sm:space-y-8">
             {/* Dashboard Overview */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               <div>
-                <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-                <p className="text-slate-600 mt-1">Manage your Web Variables and API integrations</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard</h1>
+                <p className="text-slate-600 mt-1 text-sm sm:text-base">Manage your Web Variables and API integrations</p>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="bg-white px-4 py-2 rounded-lg border border-slate-200">
-                  <span className="text-sm text-slate-600">API Base URL:</span>
-                  <code className="text-sm font-mono text-resonite-600 ml-2">
+                <div className="bg-white px-3 py-2 rounded-lg border border-slate-200 overflow-hidden">
+                  <span className="text-xs sm:text-sm text-slate-600">API Base URL:</span>
+                  <code className="text-xs sm:text-sm font-mono text-resonite-600 ml-2 block sm:inline">
                     {window.location.origin}/api/v1
                   </code>
                 </div>
@@ -228,8 +255,8 @@ export default function Dashboard() {
             <StatsCards stats={stats} />
 
             {/* Variables Management */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
+              <div className="xl:col-span-2">
                 <VariableTable
                   variables={variables}
                   onEdit={(variable) => console.log("Edit", variable)}
