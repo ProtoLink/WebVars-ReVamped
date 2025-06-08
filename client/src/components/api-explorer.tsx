@@ -25,6 +25,7 @@ export function ApiExplorer({ onSendRequest }: ApiExplorerProps) {
   const [method, setMethod] = useState("GET");
   const [endpoint, setEndpoint] = useState("/api/v1/variables/{name}");
   const [requestBody, setRequestBody] = useState('{\n  "value": "Hello World"\n}');
+  const [contentType, setContentType] = useState("application/json");
   const [response, setResponse] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -34,7 +35,7 @@ export function ApiExplorer({ onSendRequest }: ApiExplorerProps) {
       const result = await onSendRequest({
         method,
         endpoint,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": contentType },
         body: method !== "GET" ? requestBody : undefined,
       });
 
@@ -106,29 +107,86 @@ export function ApiExplorer({ onSendRequest }: ApiExplorerProps) {
               </div>
 
               <div>
-                <Label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Global Variables</Label>
+                <Label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Example Endpoints</Label>
                 <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
-                  Test endpoints for accessing and managing global variables that are publicly accessible.
+                  Test endpoints for accessing and managing variables. Use real variable names or create new ones.
                 </p>
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-md p-3 text-xs">
-                  <p className="font-medium mb-1">Example endpoints:</p>
+                  <p className="font-medium mb-1">Available operations:</p>
                   <ul className="space-y-1 text-slate-600 dark:text-slate-400">
                     <li>• GET /api/v1/variables/{`{name}`} - Get variable value</li>
                     <li>• POST /api/v1/variables/{`{name}`} - Set variable value</li>
+                    <li>• PUT /api/v1/variables/{`{name}`} - Update variable</li>
+                    <li>• DELETE /api/v1/variables/{`{name}`} - Delete variable</li>
+                    <li>• GET /api/v1/definitions - List all definitions</li>
+                  </ul>
+                  <p className="font-medium mt-2 mb-1">Authentication options:</p>
+                  <ul className="space-y-1 text-slate-600 dark:text-slate-400">
+                    <li>• Bearer token: Authorization header</li>
+                    <li>• User ID: ?userId=Tacusin parameter</li>
                   </ul>
                 </div>
               </div>
 
               {method !== "GET" && (
-                <div>
-                  <Label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Request Body</Label>
-                  <Textarea
-                    value={requestBody}
-                    onChange={(e) => setRequestBody(e.target.value)}
-                    placeholder='{\n  "value": "Hello World"\n}'
-                    className="min-h-24 font-mono text-sm"
-                  />
-                </div>
+                <>
+                  <div>
+                    <Label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Content Type</Label>
+                    <Select value={contentType} onValueChange={(value) => {
+                      setContentType(value);
+                      if (value === "application/json") {
+                        setRequestBody('{\n  "value": "Hello World"\n}');
+                      } else {
+                        setRequestBody('Hello World');
+                      }
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="application/json">JSON (application/json)</SelectItem>
+                        <SelectItem value="text/plain">Plain Text (text/plain)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Request Body
+                      <span className="text-xs text-slate-500 ml-2">
+                        {contentType === "application/json" ? "JSON format" : "Raw text for Resonite"}
+                      </span>
+                    </Label>
+                    <Textarea
+                      value={requestBody}
+                      onChange={(e) => setRequestBody(e.target.value)}
+                      placeholder={contentType === "application/json" ? '{\n  "value": "Hello World"\n}' : 'Hello World'}
+                      className="min-h-24 font-mono text-sm"
+                    />
+                    {contentType === "text/plain" && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        For enums: Use numerical index (0, 1, 2...) which will be converted to enum names automatically
+                      </p>
+                    )}
+                    <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs">
+                      <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">Quick Examples:</p>
+                      <div className="space-y-1 text-blue-700 dark:text-blue-300">
+                        {method === "POST" && contentType === "application/json" && (
+                          <p>{"{"}"value": "Hello World"{"}"}</p>
+                        )}
+                        {method === "POST" && contentType === "text/plain" && (
+                          <p>Hello World</p>
+                        )}
+                        {method === "PUT" && contentType === "application/json" && (
+                          <p>{"{"}"value": "Updated Value", "defaultValue": "Default"{"}"}</p>
+                        )}
+                        {method === "PUT" && contentType === "text/plain" && (
+                          <p>Updated Value</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
 
               <Button

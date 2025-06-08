@@ -8,11 +8,267 @@ import { Switch } from "@/components/ui/switch";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { getEnumValues } from "@shared/resonite-enums";
+
+// Helper function to render smart input components based on data type
+const renderSmartInput = (type: string, value: string, onChange: (value: string) => void, disabled: boolean, enumType?: string) => {
+  // Handle enum type with specific enum values
+  if (type === 'enum' && enumType) {
+    const enumValues = getEnumValues(enumType as any);
+    return (
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
+        <SelectTrigger>
+          <SelectValue placeholder={`Select ${enumType} value`} />
+        </SelectTrigger>
+        <SelectContent className="max-h-80">
+          {enumValues.map((enumValue) => (
+            <SelectItem key={enumValue} value={enumValue}>
+              {enumValue}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
+
+  switch (type) {
+    case 'bool':
+      return (
+        <Select value={value} onValueChange={onChange} disabled={disabled}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select boolean value" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="true">True</SelectItem>
+            <SelectItem value="false">False</SelectItem>
+          </SelectContent>
+        </Select>
+      );
+
+    case 'color':
+    case 'colorX':
+      return (
+        <div className="flex space-x-2">
+          <Input
+            type="color"
+            value={value.startsWith('#') ? value : '#000000'}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-16 h-10"
+            disabled={disabled}
+          />
+          <Input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="#RRGGBB or rgba(r,g,b,a)"
+            className="flex-1"
+            disabled={disabled}
+          />
+        </div>
+      );
+
+    case 'datetime':
+      return (
+        <Input
+          type="datetime-local"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+        />
+      );
+
+    case 'uri':
+      return (
+        <Input
+          type="url"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="https://example.com"
+          disabled={disabled}
+        />
+      );
+
+    case 'float':
+    case 'double':
+    case 'decimal':
+    case 'half':
+      return (
+        <Input
+          type="number"
+          step="any"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="0.0"
+          disabled={disabled}
+        />
+      );
+
+    case 'int':
+    case 'uint':
+    case 'long':
+    case 'ulong':
+    case 'short':
+    case 'ushort':
+    case 'byte':
+    case 'sbyte':
+      return (
+        <Input
+          type="number"
+          step="1"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="0"
+          disabled={disabled}
+        />
+      );
+
+    case 'float2':
+    case 'double2':
+    case 'int2':
+    case 'uint2':
+    case 'long2':
+    case 'ulong2':
+    case 'bool2':
+      const parts2 = value.split(',');
+      return (
+        <div className="grid grid-cols-2 gap-2">
+          <Input
+            type={type.includes('bool') ? 'text' : 'number'}
+            step={type.includes('float') || type.includes('double') ? 'any' : '1'}
+            placeholder="X"
+            value={parts2[0] || ''}
+            onChange={(e) => {
+              const newParts = [...parts2];
+              newParts[0] = e.target.value;
+              onChange(newParts.join(','));
+            }}
+            disabled={disabled}
+          />
+          <Input
+            type={type.includes('bool') ? 'text' : 'number'}
+            step={type.includes('float') || type.includes('double') ? 'any' : '1'}
+            placeholder="Y"
+            value={parts2[1] || ''}
+            onChange={(e) => {
+              const newParts = [...parts2];
+              newParts[1] = e.target.value;
+              onChange(newParts.join(','));
+            }}
+            disabled={disabled}
+          />
+        </div>
+      );
+
+    case 'float3':
+    case 'double3':
+    case 'int3':
+    case 'uint3':
+    case 'long3':
+    case 'ulong3':
+    case 'bool3':
+      const parts3 = value.split(',');
+      return (
+        <div className="grid grid-cols-3 gap-2">
+          {['X', 'Y', 'Z'].map((label, index) => (
+            <Input
+              key={label}
+              type={type.includes('bool') ? 'text' : 'number'}
+              step={type.includes('float') || type.includes('double') ? 'any' : '1'}
+              placeholder={label}
+              value={parts3[index] || ''}
+              onChange={(e) => {
+                const newParts = [...parts3];
+                newParts[index] = e.target.value;
+                onChange(newParts.join(','));
+              }}
+              disabled={disabled}
+            />
+          ))}
+        </div>
+      );
+
+    case 'float4':
+    case 'double4':
+    case 'int4':
+    case 'uint4':
+    case 'long4':
+    case 'ulong4':
+    case 'bool4':
+    case 'floatQ':
+    case 'doubleQ':
+      const parts4 = value.split(',');
+      return (
+        <div className="grid grid-cols-2 gap-2">
+          {['X', 'Y', 'Z', 'W'].map((label, index) => (
+            <Input
+              key={label}
+              type={type.includes('bool') ? 'text' : 'number'}
+              step={type.includes('float') || type.includes('double') ? 'any' : '1'}
+              placeholder={label}
+              value={parts4[index] || ''}
+              onChange={(e) => {
+                const newParts = [...parts4];
+                newParts[index] = e.target.value;
+                onChange(newParts.join(','));
+              }}
+              disabled={disabled}
+            />
+          ))}
+        </div>
+      );
+
+    case 'char':
+      return (
+        <Input
+          type="text"
+          maxLength={1}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Single character"
+          disabled={disabled}
+        />
+      );
+
+    case 'timespan':
+      return (
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="00:00:00 or Days.Hours:Minutes:Seconds"
+          disabled={disabled}
+        />
+      );
+
+    case 'refID':
+      return (
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Reference ID"
+          disabled={disabled}
+        />
+      );
+
+    default:
+      return (
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Enter value..."
+          disabled={disabled}
+        />
+      );
+  }
+};
 
 interface VariableDefinition {
   id: number;
   name: string;
   type: string;
+  enumType?: string | null;
   defaultValue: string | null;
   ownerId: string;
   ownerType: string;
@@ -112,177 +368,23 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
   const renderValueInput = () => {
     if (!variable) return null;
 
-    const parsedValue = parseValue(value, variable.type);
-
-    switch (variable.type) {
-      case 'color':
-        return (
-          <div className="space-y-2">
-            <Label>Your Color Value</Label>
-            <div className="flex space-x-2">
-              <Input
-                type="color"
-                value={typeof parsedValue === 'string' ? parsedValue : '#000000'}
-                onChange={(e) => setValue(e.target.value)}
-                className="w-16 h-10"
-                disabled={mode === 'view'}
-              />
-              <Input
-                type="text"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                placeholder={variable?.defaultValue || "#FF0000 or rgba(255,0,0,1)"}
-                className="flex-1"
-                disabled={mode === 'view'}
-              />
-            </div>
-          </div>
-        );
-
-      case 'float3':
-        const float3Val = typeof parsedValue === 'object' ? parsedValue : { x: 0, y: 0, z: 0 };
-        return (
-          <div className="space-y-2">
-            <Label>Your Vector3 Value (X, Y, Z)</Label>
-            <div className="grid grid-cols-3 gap-2">
-              <div>
-                <Label className="text-xs">X</Label>
-                <Input
-                  type="number"
-                  step="0.001"
-                  value={float3Val.x}
-                  onChange={(e) => {
-                    const newVal = { ...float3Val, x: parseFloat(e.target.value) || 0 };
-                    setValue(formatValue(newVal, 'float3'));
-                  }}
-                  disabled={mode === 'view'}
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Y</Label>
-                <Input
-                  type="number"
-                  step="0.001"
-                  value={float3Val.y}
-                  onChange={(e) => {
-                    const newVal = { ...float3Val, y: parseFloat(e.target.value) || 0 };
-                    setValue(formatValue(newVal, 'float3'));
-                  }}
-                  disabled={mode === 'view'}
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Z</Label>
-                <Input
-                  type="number"
-                  step="0.001"
-                  value={float3Val.z}
-                  onChange={(e) => {
-                    const newVal = { ...float3Val, z: parseFloat(e.target.value) || 0 };
-                    setValue(formatValue(newVal, 'float3'));
-                  }}
-                  disabled={mode === 'view'}
-                />
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'float2':
-        const float2Val = typeof parsedValue === 'object' ? parsedValue : { x: 0, y: 0 };
-        return (
-          <div className="space-y-2">
-            <Label>Your Vector2 Value (X, Y)</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs">X</Label>
-                <Input
-                  type="number"
-                  step="0.001"
-                  value={float2Val.x}
-                  onChange={(e) => {
-                    const newVal = { ...float2Val, x: parseFloat(e.target.value) || 0 };
-                    setValue(formatValue(newVal, 'float2'));
-                  }}
-                  disabled={mode === 'view'}
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Y</Label>
-                <Input
-                  type="number"
-                  step="0.001"
-                  value={float2Val.y}
-                  onChange={(e) => {
-                    const newVal = { ...float2Val, y: parseFloat(e.target.value) || 0 };
-                    setValue(formatValue(newVal, 'float2'));
-                  }}
-                  disabled={mode === 'view'}
-                />
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'bool':
-        return (
-          <div className="space-y-2">
-            <Label>Your Boolean Value</Label>
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={parsedValue === true || value === 'true'}
-                onCheckedChange={(checked) => setValue(checked.toString())}
-                disabled={mode === 'view'}
-              />
-              <span className="text-sm text-slate-600">
-                {parsedValue === true || value === 'true' ? 'True' : 'False'}
-              </span>
-            </div>
-          </div>
-        );
-
-      case 'int':
-        return (
-          <div className="space-y-2">
-            <Label>Your Integer Value</Label>
-            <Input
-              type="number"
-              step="1"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              disabled={mode === 'view'}
-            />
-          </div>
-        );
-
-      case 'float':
-        return (
-          <div className="space-y-2">
-            <Label>Your Float Value</Label>
-            <Input
-              type="number"
-              step="0.001"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              disabled={mode === 'view'}
-            />
-          </div>
-        );
-
-      default:
-        return (
-          <div className="space-y-2">
-            <Label>Your Current Value</Label>
-            <Input
-              type="text"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              disabled={mode === 'view'}
-              placeholder={variable?.defaultValue || 'Enter value...'}
-            />
-          </div>
-        );
-    }
+    return (
+      <div className="space-y-2">
+        <Label>Your Value</Label>
+        {renderSmartInput(
+          variable.type,
+          value,
+          setValue,
+          mode === 'view',
+          variable.enumType || undefined
+        )}
+        {variable.type === 'enum' && variable.enumType && (
+          <p className="text-xs text-muted-foreground">
+            Enum Type: {variable.enumType}
+          </p>
+        )}
+      </div>
+    );
   };
 
   // Load user-specific value when variable changes

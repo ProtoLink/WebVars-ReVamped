@@ -42,6 +42,7 @@ export const variableDefinitions = pgTable("variable_definitions", {
   name: varchar("name", { length: 255 }).notNull().unique(),
   type: varchar("type", { length: 50 }).notNull(),
   defaultValue: text("default_value"),
+  enumType: varchar("enum_type", { length: 100 }), // For enum types, stores the specific enum name
   ownerId: varchar("owner_id").notNull(),
   ownerType: varchar("owner_type", { length: 10 }).notNull().default("user"), // 'user', 'group', or 'unsafe'
   readPermission: varchar("read_permission", { length: 50 }).notNull().default("variable_owner"),
@@ -175,18 +176,39 @@ export type UpdateWebhook = z.infer<typeof updateWebhookSchema>;
 
 // Supported data types (from Resonite)
 export const SUPPORTED_DATA_TYPES = [
+  // Basic types
+  'string',
   'bool', 'bool2', 'bool3', 'bool4',
-  'float', 'float2', 'float3', 'float4', 'float2x2', 'float3x3', 'float4x4',
-  'int', 'int2', 'int3', 'int4',
-  'long', 'long2', 'long3', 'long4',
-  'double', 'double2', 'double3', 'double4', 'double2x2', 'double3x3', 'double4x4',
-  'uint', 'uint2', 'uint3', 'uint4',
-  'ulong', 'ulong2', 'ulong3', 'ulong4',
-  'short', 'ushort',
+  'char',
   'byte', 'sbyte',
-  'floatq', 'doubleq',
-  'color', 'datetime', 'timespan', 'decimal',
-  'string', 'enum'
+  'short', 'ushort',
+  'int', 'int2', 'int3', 'int4',
+  'uint', 'uint2', 'uint3', 'uint4',
+  'long', 'long2', 'long3', 'long4',
+  'ulong', 'ulong2', 'ulong3', 'ulong4',
+  'half',
+  'float', 'float2', 'float3', 'float4',
+  'double', 'double2', 'double3', 'double4',
+  'decimal',
+  
+  // Matrix types
+  'float2x2', 'float3x3', 'float4x4',
+  'double2x2', 'double3x3', 'double4x4',
+  
+  // Quaternion types
+  'floatQ', 'doubleQ',
+  
+  // Color types
+  'color', 'colorX',
+  
+  // Time types
+  'datetime', 'timespan',
+  
+  // Other types
+  'uri', 'refID',
+  
+  // Enum type
+  'enum'
 ] as const;
 
 // Permission types
@@ -204,5 +226,48 @@ export const PERMISSION_TYPES = [
   'definition_owner_unsafe'
 ] as const;
 
+// Resonite Enum Types
+export const RESONITE_ENUMS = [
+  'ActiveUserHandling', 'AlphaHandling', 'AntiAliasingMethod', 'AssetToolReplacementMode', 'AssetType',
+  'AudioDistanceSpace', 'AudioInputType', 'AudioLoadMode', 'AudioRolloffMode', 'AudioTypeGroup', 'AvatarExpression', 'Axis',
+  'Blend', 'BlendMode', 'BlockType', 'BodyNode',
+  'CameraClearMode', 'CameraPositioningMode', 'CharacterControllerParameter', 'Chirality', 'CloudProfile',
+  'CloudVariableChangeMode', 'ColliderType', 'ColorMask', 'ColorProfile', 'ColorProfileRequirement',
+  'ComponentHandling', 'CompoundZeroHandling', 'CookiesBrowser', 'Culling', 'CurvePreset',
+  'DataFeedItemChange', 'DateTimeKind', 'DayOfWeek', 'DecompositionMode', 'DependencyHandling',
+  'DepthEncoding', 'DualInputHandling', 'DynamicBoneCollisionDataType',
+  'ECCLevel', 'EndMode', 'Ends', 'EngineAssetClass', 'EventState', 'ExceptionAction', 'EyeSide',
+  'FacetAnchorPoint', 'FilterCombineMode', 'Filtering', 'FingerSegmentType', 'FingerType',
+  'HapticPositionType', 'HeadOutputDevice', 'HostAccessPermission', 'HostAccessScope', 'HttpStatusCode',
+  'ImageProjection', 'InputBlockMode', 'InterpolationMode',
+  'Key', 'KeyboardType', 'KeyframeInterpolation',
+  'LaserHitClass', 'LayoutDirection', 'LayoutHorizontalAlignment', 'LayoutMetric', 'LayoutVerticalAlignment',
+  'LegacyParticleAlignment', 'LightType', 'LineColorMode', 'ListFilterMode', 'LoadStage',
+  'LocomotionArchetype', 'LocomotionReference', 'LoopSetOptions', 'LookAtUser.UserNode',
+  'MappingTarget', 'MaskTextureMode', 'MaterialTag', 'MeshColliderSidedness', 'MeshEmissionSource',
+  'MeshEmissionSpace', 'MessageType', 'MessageValidity', 'MigrationState', 'Model',
+  'MotionVectorMode', 'MouseButton', 'MutePersistence',
+  'NameplateVisibility', 'NineSliceSizing', 'NotificationType',
+  'OwnerType',
+  'PanoramicProjection', 'ParticleAnimationType', 'ParticleTrailMode', 'ParticleTrailTextureMode',
+  'PBR_TextureFormat', 'PermissionState', 'PermissionViolationAction', 'PhotoEncodeFormat',
+  'PhysicsScalingMode', 'Platform', 'PlaybackAction', 'PointerType', 'PointProjection',
+  'PositionType', 'PrimaryLocomotionController', 'Primitive', 'Priority', 'ProgressStage', 'PropertyState',
+  'ReferenceState', 'Relation', 'RenderingContext', 'RestoreMode', 'RootSpace',
+  'SampleRateMode', 'SaveType', 'ScaleMultiplierMode', 'ScreenshotType', 'SensationClass',
+  'SessionAccessLevel', 'Shading', 'ShadowCascadeMode', 'ShadowCastMode', 'ShadowResolutionMode',
+  'ShadowType', 'ShoulderRotationMode', 'SidewaysMovementMode', 'SimulationType', 'SizeFit',
+  'SkinnedBounds', 'SkinWeightMode', 'StaticCameraType', 'SteamChannel', 'SteamCloseReason',
+  'StencilComparison', 'StencilOperation', 'StereoLayout', 'StringComparison',
+  'TextureCompression', 'TextureConversion', 'TextureFilterMode', 'TextureFormat', 'TextureSizeLimit',
+  'TextureSizeRatio', 'TorsoSide', 'TouchEventType', 'TouchType', 'TrackType',
+  'UnlitTextureMode', 'UserRoot.UserNode',
+  'ValueEncoding', 'ValueSpatialVariableMode', 'VibratePreset', 'Viseme', 'VoiceMode',
+  'VolumeMeterMethod', 'VolumePlaneMode',
+  'Winding', 'WireType', 'WorldIdLinkStatus', 'WrapMode',
+  'ZTest', 'ZWrite'
+] as const;
+
 export type DataType = typeof SUPPORTED_DATA_TYPES[number];
 export type PermissionType = typeof PERMISSION_TYPES[number];
+export type ResoniteEnum = typeof RESONITE_ENUMS[number];
