@@ -235,26 +235,26 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
         <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600">Name</TableHead>
-                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600">Type</TableHead>
-                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600">Value</TableHead>
-                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600">Permissions</TableHead>
-                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600">Updated</TableHead>
-                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600">Actions</TableHead>
+              <TableRow className="bg-slate-50 dark:bg-slate-800">
+                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600 dark:text-slate-400">Name</TableHead>
+                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600 dark:text-slate-400">Type</TableHead>
+                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600 dark:text-slate-400">Value</TableHead>
+                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600 dark:text-slate-400">Permissions</TableHead>
+                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600 dark:text-slate-400">Updated</TableHead>
+                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600 dark:text-slate-400">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredVariables.map((variable) => (
-                <TableRow key={variable.id} className="hover:bg-slate-50">
+                <TableRow key={variable.id} className="hover:bg-slate-50 dark:hover:bg-slate-800">
                   <TableCell className="py-4 px-4 lg:px-6">
                     <div className="flex items-center">
-                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                      <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center mr-3">
                         {getTypeIcon(variable.type)}
                       </div>
                       <div>
-                        <div className="font-medium text-slate-900 text-sm">{variable.name}</div>
-                        <div className="text-xs text-slate-600">{variable.ownerType}-owned</div>
+                        <div className="font-medium text-slate-900 dark:text-white text-sm">{variable.name}</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400">{variable.ownerType}-owned</div>
                       </div>
                     </div>
                   </TableCell>
@@ -264,7 +264,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                     </Badge>
                   </TableCell>
                   <TableCell className="py-4 px-4 lg:px-6">
-                    <code className="text-xs font-mono text-slate-700 max-w-24 truncate block">
+                    <code className="text-xs font-mono text-slate-700 dark:text-slate-300 max-w-24 truncate block">
                       {variable.defaultValue || "null"}
                     </code>
                   </TableCell>
@@ -277,7 +277,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell className="py-4 px-4 lg:px-6 text-xs text-slate-600">
+                  <TableCell className="py-4 px-4 lg:px-6 text-xs text-slate-600 dark:text-slate-400">
                     {formatDistanceToNow(new Date(variable.updatedAt), { addSuffix: true })}
                   </TableCell>
                   <TableCell className="py-4 px-4 lg:px-6">

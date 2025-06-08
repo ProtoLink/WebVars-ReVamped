@@ -97,19 +97,19 @@ export function ApiExplorer({ onSendRequest }: ApiExplorerProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-xl font-bold text-slate-900">API Explorer</CardTitle>
-        <p className="text-slate-600 text-sm mt-1">Test API endpoints directly from the dashboard</p>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white">API Explorer</CardTitle>
+        <p className="text-slate-600 dark:text-slate-400 text-xs lg:text-sm mt-1">Test API endpoints directly from the dashboard</p>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           {/* Request Builder */}
           <div>
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Request Builder</h3>
-            <div className="space-y-4">
-              <div className="flex space-x-2">
+            <h3 className="text-base lg:text-lg font-semibold text-slate-900 dark:text-white mb-3 lg:mb-4">Request Builder</h3>
+            <div className="space-y-3 lg:space-y-4">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                 <Select value={method} onValueChange={setMethod}>
-                  <SelectTrigger className="w-24">
+                  <SelectTrigger className="w-full sm:w-24">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -128,10 +128,10 @@ export function ApiExplorer({ onSendRequest }: ApiExplorerProps) {
               </div>
 
               <div>
-                <Label className="block text-sm font-medium text-slate-700 mb-2">Headers</Label>
+                <Label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Headers</Label>
                 <div className="space-y-2">
                   {headers.map((header, index) => (
-                    <div key={index} className="flex space-x-2">
+                    <div key={index} className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                       <Input
                         value={header.key}
                         onChange={(e) => updateHeader(index, e.target.value, header.value)}
@@ -146,7 +146,7 @@ export function ApiExplorer({ onSendRequest }: ApiExplorerProps) {
                       />
                     </div>
                   ))}
-                  <Button variant="outline" size="sm" onClick={addHeader}>
+                  <Button variant="outline" size="sm" onClick={addHeader} className="w-full sm:w-auto">
                     Add Header
                   </Button>
                 </div>
