@@ -2,10 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertVariableDefinitionSchema, insertVariableValueSchema, insertWebhookSchema, SUPPORTED_DATA_TYPES, PERMISSION_TYPES } from "@shared/schema";
 import { z } from "zod";
-import crypto from "crypto";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 
@@ -25,210 +23,25 @@ const variableLimiter = rateLimit({
 // WebSocket connection tracking
 const wsConnections = new Map<string, WebSocket>();
 
-// Middleware to authenticate requests (supports both session and API key)
-const authenticateRequest = async (req: any, res: any, next: any) => {
-  // Try session authentication first
-  if (req.session && req.session.user) {
-    try {
-      let user = await storage.getUser(req.session.user.id);
-      if (!user) {
-        user = await storage.upsertUser({
-          id: req.session.user.id,
-          email: req.session.user.email,
-          firstName: req.session.user.firstName,
-          lastName: req.session.user.lastName,
-          profileImageUrl: req.session.user.profileImageUrl,
-        });
-      }
-      req.user = user;
-      req.userId = user.id;
-      req.authType = 'session';
-      return next();
-    } catch (error) {
-      console.error('Session authentication error:', error);
-      return res.status(500).json({ error: 'Authentication failed' });
-    }
-  }
-
-  // Fall back to API key authentication
-  let apiKey: string | undefined;
-  
-  // Check authorization header first
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    apiKey = authHeader.substring(7);
-  }
-  
-  // Fall back to query parameter for Resonite compatibility
-  if (!apiKey && req.query.key) {
-    apiKey = req.query.key as string;
-  }
-  
-  if (!apiKey) {
-    return res.status(401).json({ error: 'Missing API key. Use Authorization header or ?key= query parameter' });
-  }
-
-  const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
-  
-  try {
-    const apiKeyRecord = await storage.getApiKeyByHash(keyHash);
-    
-    if (!apiKeyRecord) {
-      return res.status(401).json({ error: 'Invalid API key' });
-    }
-
-    // Update last used timestamp
-    await storage.updateApiKeyLastUsed(apiKeyRecord.id);
-    
-    req.apiKey = apiKeyRecord;
-    req.userId = apiKeyRecord.userId;
-    req.authType = 'apikey';
-    next();
-  } catch (error) {
-    console.error('API key authentication error:', error);
-    res.status(500).json({ error: 'Authentication failed' });
-  }
-};
-
-// Middleware for API key only authentication (for external API access)
-const authenticateApiKey = async (req: any, res: any, next: any) => {
-  let apiKey: string | undefined;
-  
-  // Check authorization header first
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    apiKey = authHeader.substring(7);
-  }
-  
-  // Fall back to query parameter for Resonite compatibility
-  if (!apiKey && req.query.key) {
-    apiKey = req.query.key as string;
-  }
-  
-  if (!apiKey) {
-    return res.status(401).json({ error: 'Missing API key. Use Authorization header or ?key= query parameter' });
-  }
-
-  const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
-  
-  try {
-    const apiKeyRecord = await storage.getApiKeyByHash(keyHash);
-    
-    if (!apiKeyRecord) {
-      return res.status(401).json({ error: 'Invalid API key' });
-    }
-
-    // Update last used timestamp
-    await storage.updateApiKeyLastUsed(apiKeyRecord.id);
-    
-    req.apiKey = apiKeyRecord;
-    req.userId = apiKeyRecord.userId;
-    next();
-  } catch (error) {
-    console.error('API key authentication error:', error);
-    res.status(500).json({ error: 'Authentication failed' });
-  }
-};
-
-// Middleware for unsafe variable authentication (supports both API key and userId)
-const authenticateUnsafeVariable = async (req: any, res: any, next: any) => {
-  // Try API key authentication first
-  let apiKey: string | undefined;
-  
-  // Check authorization header
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    apiKey = authHeader.substring(7);
-  }
-  
-  // Check query parameter
-  if (!apiKey && req.query.key) {
-    apiKey = req.query.key as string;
-  }
-  
-  if (apiKey) {
-    // Use API key authentication
-    const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
-    
-    try {
-      const apiKeyRecord = await storage.getApiKeyByHash(keyHash);
-      
-      if (apiKeyRecord) {
-        await storage.updateApiKeyLastUsed(apiKeyRecord.id);
-        req.apiKey = apiKeyRecord;
-        req.userId = apiKeyRecord.userId;
-        req.authType = 'apikey';
-        return next();
-      }
-    } catch (error) {
-      // Continue to userId authentication if API key fails
-    }
-  }
-  
-  // Try userId authentication for unsafe variables
+// Simple middleware to extract userId from URL parameter
+const extractUserId = (req: any, res: any, next: any) => {
   const userId = req.query.userId as string;
-  if (userId) {
-    // Basic validation that userId exists
-    try {
-      const user = await storage.getUser(userId);
-      if (user) {
-        req.userId = userId;
-        req.authType = 'userid';
-        return next();
-      }
-    } catch (error) {
-      // Continue to error
-    }
+  
+  if (!userId) {
+    return res.status(400).json({ error: 'userId parameter is required' });
   }
   
-  return res.status(401).json({ 
-    error: 'Authentication required. Use API key (Authorization header or ?key= parameter) or User ID (?userId= parameter for unsafe variables)' 
-  });
+  req.userId = userId;
+  next();
 };
 
-// Middleware to check variable permissions
-const checkVariablePermission = (action: 'read' | 'write' | 'list') => {
-  return async (req: any, res: any, next: any) => {
-    try {
-      const { name } = req.params;
-      const userId = req.userId;
-      
-      const definition = await storage.getVariableDefinition(name);
-      if (!definition) {
-        return res.status(404).json({ error: 'Variable definition not found' });
-      }
-
-      let permission: string;
-      switch (action) {
-        case 'read':
-          permission = definition.readPermission;
-          break;
-        case 'write':
-          permission = definition.writePermission;
-          break;
-        case 'list':
-          permission = definition.listPermission;
-          break;
-      }
-
-      // Check permission logic (simplified)
-      const hasPermission = 
-        permission === 'anyone' ||
-        (permission === 'definition_owner' && definition.ownerId === userId) ||
-        (permission === 'variable_owner' && userId) || // Would need more context for variable_owner
-        (permission.includes('unsafe') && true); // Unsafe permissions allow broader access
-
-      if (!hasPermission) {
-        return res.status(403).json({ error: `Insufficient permissions for ${action} operation` });
-      }
-
-      req.definition = definition;
-      next();
-    } catch (error) {
-      console.error('Permission check error:', error);
-      res.status(500).json({ error: 'Permission check failed' });
-    }
-  };
+// Helper function to get variable definition
+const getVariableDefinition = async (name: string) => {
+  const definition = await storage.getVariableDefinition(name);
+  if (!definition) {
+    throw new Error('Variable definition not found');
+  }
+  return definition;
 };
 
 // Helper function to broadcast WebSocket updates
@@ -256,25 +69,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   }));
 
-  // Auth middleware
-  await setupAuth(app);
-
   // Apply rate limiting to API routes
   app.use('/api', apiLimiter);
   app.use('/api/v1/variables', variableLimiter);
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      res.json(req.user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
-
   // Demo data endpoint for development
-  app.post('/api/demo/create', authenticateRequest, async (req: any, res) => {
+  app.post('/api/demo/create', extractUserId, async (req: any, res) => {
     try {
       const { createDemoData } = await import('./demo-data');
       await createDemoData(req.userId);
@@ -302,7 +102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Variable definition endpoints
-  app.get('/api/v1/definitions', authenticateRequest, async (req: any, res) => {
+  app.get('/api/v1/definitions', extractUserId, async (req: any, res) => {
     try {
       const definitions = await storage.getVariableDefinitions(req.userId);
       res.json({
@@ -315,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/v1/definitions/:name', authenticateRequest, async (req: any, res) => {
+  app.put('/api/v1/definitions/:name', extractUserId, async (req: any, res) => {
     try {
       const { name } = req.params;
       const validatedData = insertVariableDefinitionSchema.parse({
@@ -347,7 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/v1/definitions/:name', authenticateRequest, async (req: any, res) => {
+  app.patch('/api/v1/definitions/:name', extractUserId, async (req: any, res) => {
     try {
       const { name } = req.params;
       const definition = await storage.getVariableDefinition(name);
@@ -375,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/v1/definitions/:name', authenticateRequest, async (req: any, res) => {
+  app.delete('/api/v1/definitions/:name', extractUserId, async (req: any, res) => {
     try {
       const { name } = req.params;
       const definition = await storage.getVariableDefinition(name);
@@ -403,9 +203,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Variable value endpoints
-  app.get('/api/v1/variables/:name', authenticateUnsafeVariable, checkVariablePermission('read'), async (req: any, res) => {
+  app.get('/api/v1/variables/:name', extractUserId, async (req: any, res) => {
     try {
-      const definition = req.definition;
+      const { name } = req.params;
+      const definition = await getVariableDefinition(name);
       const ownerId = req.query.owner || req.userId;
       
       const value = await storage.getVariableValue(definition.id, ownerId);
@@ -473,9 +274,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/v1/variables/:name', authenticateUnsafeVariable, checkVariablePermission('write'), async (req: any, res) => {
+  app.post('/api/v1/variables/:name', extractUserId, async (req: any, res) => {
     try {
-      const definition = req.definition;
+      const { name } = req.params;
+      const definition = await getVariableDefinition(name);
       const { value } = req.body;
       const ownerId = req.body.owner || req.userId;
 
@@ -532,9 +334,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/v1/variables/:name/values', authenticateApiKey, checkVariablePermission('list'), async (req: any, res) => {
+  app.get('/api/v1/variables/:name/values', extractUserId, async (req: any, res) => {
     try {
-      const definition = req.definition;
+      const { name } = req.params;
+      const definition = await getVariableDefinition(name);
       const values = await storage.getVariableValues(definition.id);
 
       res.json({
@@ -555,118 +358,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // API key management endpoints
-  app.get('/api/v1/api-keys', authenticateRequest, async (req: any, res) => {
-    try {
-      const apiKeys = await storage.getUserApiKeys(req.userId);
-      res.json({
-        success: true,
-        data: apiKeys.map(key => ({
-          id: key.id,
-          name: key.name,
-          isActive: key.isActive,
-          lastUsed: key.lastUsed,
-          createdAt: key.createdAt
-        }))
-      });
-    } catch (error) {
-      console.error('Get API keys error:', error);
-      res.status(500).json({ error: 'Failed to fetch API keys' });
-    }
-  });
-
-  app.post('/api/v1/api-keys', authenticateRequest, async (req: any, res) => {
-    try {
-      const { name } = req.body;
-      
-      if (!name) {
-        return res.status(400).json({ error: 'API key name is required' });
-      }
-
-      const { key, apiKey } = await storage.createApiKey({
-        userId: req.userId,
-        name,
-        isActive: true
-      });
-
-      res.status(201).json({
-        success: true,
-        data: {
-          id: apiKey.id,
-          name: apiKey.name,
-          key, // Only return the key once
-          createdAt: apiKey.createdAt
-        }
-      });
-    } catch (error) {
-      console.error('Create API key error:', error);
-      res.status(500).json({ error: 'Failed to create API key' });
-    }
-  });
-
-  app.delete('/api/v1/api-keys/:id', authenticateRequest, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      const keyId = parseInt(id);
-      
-      // Get the API key to verify ownership
-      const userApiKeys = await storage.getUserApiKeys(req.userId);
-      const targetKey = userApiKeys.find(key => key.id === keyId);
-      
-      if (!targetKey) {
-        return res.status(404).json({ error: 'API key not found or not owned by user' });
-      }
-      
-      await storage.deleteApiKey(keyId);
-      
-      res.json({
-        success: true,
-        message: 'API key deleted'
-      });
-    } catch (error) {
-      console.error('Delete API key error:', error);
-      res.status(500).json({ error: 'Failed to delete API key' });
-    }
-  });
-
-  // Webhook endpoints
-  app.get('/api/v1/webhooks', authenticateApiKey, async (req: any, res) => {
-    try {
-      const webhooks = await storage.getWebhooks(req.userId);
-      res.json({
-        success: true,
-        data: webhooks
-      });
-    } catch (error) {
-      console.error('Get webhooks error:', error);
-      res.status(500).json({ error: 'Failed to fetch webhooks' });
-    }
-  });
-
-  app.post('/api/v1/webhooks', authenticateApiKey, async (req: any, res) => {
-    try {
-      const validatedData = insertWebhookSchema.parse({
-        ...req.body,
-        userId: req.userId
-      });
-
-      const webhook = await storage.createWebhook(validatedData);
-      
-      res.status(201).json({
-        success: true,
-        data: webhook
-      });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: 'Invalid request data', details: error.errors });
-      }
-      console.error('Create webhook error:', error);
-      res.status(500).json({ error: 'Failed to create webhook' });
-    }
-  });
-
   // Statistics endpoint
-  app.get('/api/v1/stats', authenticateRequest, async (req: any, res) => {
+  app.get('/api/v1/stats', extractUserId, async (req: any, res) => {
     try {
       const stats = await storage.getStats(req.userId);
       res.json({
@@ -680,7 +373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Search endpoint
-  app.get('/api/v1/search', authenticateApiKey, async (req: any, res) => {
+  app.get('/api/v1/search', extractUserId, async (req: any, res) => {
     try {
       const { q: query } = req.query;
       
