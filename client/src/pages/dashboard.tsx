@@ -45,11 +45,11 @@ export default function Dashboard({ userId }: DashboardProps) {
   // WebSocket connection for real-time updates
   const { isConnected, lastMessage } = useWebSocket(userId);
 
-  // Fetch variable definitions
+  // Fetch variable definitions (all globally accessible variables)
   const { data: variablesData, isLoading: variablesLoading } = useQuery({
-    queryKey: ["/api/v1/definitions", { userId }],
+    queryKey: ["/api/v1/definitions"],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api/v1/definitions?userId=${userId}`);
+      const response = await apiRequest("GET", `/api/v1/definitions`);
       return response.json();
     },
     enabled: !!userId,

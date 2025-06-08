@@ -233,7 +233,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Variable definition endpoints
   app.get('/api/v1/definitions', extractUserId, async (req: any, res) => {
     try {
-      const definitions = await storage.getVariableDefinitions(req.userId);
+      // Return all globally accessible variable definitions (following Resonite pattern)
+      const definitions = await storage.getVariableDefinitions();
       res.json({
         success: true,
         data: definitions

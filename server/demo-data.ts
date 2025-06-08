@@ -1,93 +1,98 @@
 import { storage } from "./storage";
 
 export async function createDemoData(userId: string) {
-  // Create sample variable definitions that showcase different use cases
+  // Create sample variable definitions following Resonite cloud variable patterns
+  // These represent global variable definitions that all users can access with their own values
   const demoVariables = [
     {
-      name: `${userId}_player_score`,
+      name: "Player.Score",
       type: "string",
       defaultValue: "1500",
-      ownerId: userId,
+      ownerId: "system",
       ownerType: "user",
-      readPermission: "variable_owner",
+      readPermission: "anyone",
       writePermission: "variable_owner", 
-      listPermission: "definition_owner"
+      listPermission: "anyone"
     },
     {
-      name: `${userId}_game_settings`,
+      name: "Game.Settings",
       type: "string",
       defaultValue: '{"difficulty":"normal","volume":0.8}',
-      ownerId: userId,
+      ownerId: "system",
       ownerType: "user",
-      readPermission: "variable_owner",
+      readPermission: "anyone",
       writePermission: "variable_owner",
-      listPermission: "definition_owner"
+      listPermission: "anyone"
     },
     {
-      name: `${userId}_is_online`,
+      name: "User.IsOnline",
       type: "string",
-      defaultValue: "true",
-      ownerId: userId,
+      defaultValue: "false",
+      ownerId: "system",
       ownerType: "user", 
-      readPermission: "variable_owner",
+      readPermission: "anyone",
       writePermission: "variable_owner",
-      listPermission: "definition_owner"
+      listPermission: "anyone"
     },
     {
-      name: `${userId}_avatar_height`,
+      name: "Avatar.Height",
       type: "string",
       defaultValue: "1.75",
-      ownerId: userId,
+      ownerId: "system",
       ownerType: "user",
-      readPermission: "variable_owner",
+      readPermission: "anyone",
       writePermission: "variable_owner",
-      listPermission: "definition_owner"
+      listPermission: "anyone"
     },
     {
-      name: `${userId}_world_preferences`,
+      name: "World.Preferences",
       type: "string",
       defaultValue: '{"theme":"cyberpunk","lighting":"dynamic"}',
-      ownerId: userId,
+      ownerId: "system",
       ownerType: "user",
-      readPermission: "variable_owner",
+      readPermission: "anyone",
       writePermission: "variable_owner",
-      listPermission: "definition_owner"
+      listPermission: "anyone"
     }
   ];
 
-  // Create the variable definitions
+  // Create the variable definitions (global, shared by all users)
   for (const variable of demoVariables) {
     try {
       // Check if variable already exists
       const existing = await storage.getVariableDefinition(variable.name);
       if (existing) {
-        console.log(`Demo variable ${variable.name} already exists, skipping...`);
-        continue;
+        console.log(`Demo variable ${variable.name} already exists, creating user value...`);
+      } else {
+        await storage.createVariableDefinition(variable);
+        console.log(`Created demo variable: ${variable.name}`);
       }
       
-      await storage.createVariableDefinition(variable);
-      console.log(`Created demo variable: ${variable.name}`);
-      
-      // Create initial values for some variables
-      if (variable.name === `${userId}_player_score`) {
-        const definition = await storage.getVariableDefinition(variable.name);
-        if (definition) {
+      // Create user-specific values for this requesting user
+      const definition = await storage.getVariableDefinition(variable.name);
+      if (definition) {
+        // Check if user already has a value for this variable
+        const existingValue = await storage.getVariableValue(definition.id, userId);
+        if (!existingValue) {
+          // Set initial values based on variable type
+          let initialValue = variable.defaultValue;
+          
+          if (variable.name === "Player.Score") {
+            initialValue = "2100";
+          } else if (variable.name === "User.IsOnline") {
+            initialValue = "true";
+          } else if (variable.name === "Avatar.Height") {
+            initialValue = Math.random() > 0.5 ? "1.8" : "1.7"; // Some variety
+          }
+          
           await storage.setVariableValue({
             definitionId: definition.id,
             ownerId: userId,
-            value: "2100"
+            value: initialValue
           });
-        }
-      }
-      
-      if (variable.name === `${userId}_is_online`) {
-        const definition = await storage.getVariableDefinition(variable.name);
-        if (definition) {
-          await storage.setVariableValue({
-            definitionId: definition.id,
-            ownerId: userId,
-            value: "true"
-          });
+          console.log(`Created value for ${variable.name} for user ${userId}`);
+        } else {
+          console.log(`User ${userId} already has value for ${variable.name}`);
         }
       }
     } catch (error) {
