@@ -236,7 +236,7 @@ export default function Dashboard({ userId }: DashboardProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Cloud className="h-6 w-6 lg:h-8 lg:w-8 text-blue-600" />
-              <h1 className="text-lg lg:text-2xl font-bold text-slate-900 dark:text-white">Variable Sync</h1>
+              <h1 className="text-lg lg:text-2xl font-bold text-slate-900 dark:text-white">WebVar</h1>
             </div>
             <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
               <div className={`mr-1 h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
@@ -453,7 +453,7 @@ export default function Dashboard({ userId }: DashboardProps) {
               <div>
                 <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">Documentation</h1>
                 <p className="text-sm lg:text-base text-slate-600 dark:text-slate-400 mt-1">
-                  Learn how to integrate with the Variable Sync API
+                  Learn how to integrate with the WebVar API
                 </p>
               </div>
               

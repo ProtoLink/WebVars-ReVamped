@@ -19,7 +19,7 @@ export default function DonatePage() {
             </div>
           </div>
           <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
-            Support Variable Sync
+            Support WebVar
           </h1>
           <p className="text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
             Help keep this free cloud variable synchronization service running for the entire Resonite community
@@ -138,7 +138,7 @@ export default function DonatePage() {
                     Alternative Support
                   </h4>
                   <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                    <p>• Share Variable Sync with other Resonite creators</p>
+                    <p>• Share WebVar with other Resonite creators</p>
                     <p>• Provide feedback and feature suggestions</p>
                     <p>• Help improve documentation and guides</p>
                     <p>• Report bugs and contribute to development</p>
@@ -154,7 +154,7 @@ export default function DonatePage() {
                     Thank You!
                   </h4>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Variable Sync has been built with passion for the Resonite community. 
+                    WebVar has been built with passion for the Resonite community. 
                     Your support helps ensure it remains available and continues to evolve 
                     based on community needs.
                   </p>
@@ -169,7 +169,7 @@ export default function DonatePage() {
           <CardHeader className="text-center">
             <CardTitle className="text-slate-900 dark:text-white">Community Impact</CardTitle>
             <CardDescription>
-              Variable Sync serving the Resonite community
+              WebVar serving the Resonite community
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -196,7 +196,7 @@ export default function DonatePage() {
 
         {/* Footer */}
         <div className="text-center text-sm text-slate-500 dark:text-slate-400">
-          <p>Variable Sync is an independent project created for the Resonite community</p>
+          <p>WebVar is an independent project created for the Resonite community</p>
           <p className="mt-1">Made with ❤️ for creators, builders, and innovators</p>
         </div>
       </div>
