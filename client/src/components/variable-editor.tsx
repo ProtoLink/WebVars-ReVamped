@@ -289,16 +289,17 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
   React.useEffect(() => {
     if (variable && isOpen) {
       setIsLoadingValue(true);
-      // Fetch the current user's value for this variable
-      fetch(`/api/v1/variables/${variable.name}`, {
+      // Fetch the current user's value for this variable with format=json
+      fetch(`/api/v1/variables/${variable.name}?format=json`, {
         credentials: 'include'
       })
         .then(res => res.json())
         .then(data => {
-          if (data.success) {
-            setValue(data.data.value || variable.defaultValue || '');
+          if (data.success && data.data) {
+            // Always use the actual current value, whether it's user-specific or default
+            setValue(data.data.value || '');
           } else {
-            // If no user-specific value exists, use default
+            // Only fall back to default if API call fails completely
             setValue(variable.defaultValue || '');
           }
         })
