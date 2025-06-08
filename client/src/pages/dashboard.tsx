@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -33,6 +34,8 @@ export default function Dashboard() {
   const [selectedVariable, setSelectedVariable] = useState<any>(null);
   const [editorMode, setEditorMode] = useState<'edit' | 'view'>('view');
   const [showEditor, setShowEditor] = useState(false);
+  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
+  const [newApiKeyName, setNewApiKeyName] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -142,11 +145,13 @@ export default function Dashboard() {
     mutationFn: async (name: string) => {
       return await apiRequest("POST", "/api/v1/api-keys", { name });
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["/api/v1/api-keys"] });
+      setShowApiKeyDialog(false);
+      setNewApiKeyName("");
       toast({
         title: "API Key Created",
-        description: "New API key has been generated successfully",
+        description: `New API key "${newApiKeyName}" has been generated successfully`,
       });
     },
     onError: (error) => {
