@@ -37,12 +37,12 @@ export function StatsCards({ stats }: StatsCardsProps) {
       iconBg: "bg-purple-100",
     },
     {
-      title: "Rate Limit",
-      value: "78%",
-      change: "of daily limit used",
-      icon: Gauge,
-      iconColor: "text-amber-600",
-      iconBg: "bg-amber-100",
+      title: "Global Variables",
+      value: stats.totalValues,
+      change: "accessible to all",
+      icon: Database,
+      iconColor: "text-green-600",
+      iconBg: "bg-green-100",
     },
   ];
 
