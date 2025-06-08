@@ -23,16 +23,33 @@ const variableLimiter = rateLimit({
 // WebSocket connection tracking
 const wsConnections = new Map<string, WebSocket>();
 
-// Simple middleware to extract userId from URL parameter
-const extractUserId = (req: any, res: any, next: any) => {
+// Simple middleware to extract userId from URL parameter and ensure user exists
+const extractUserId = async (req: any, res: any, next: any) => {
   const userId = req.query.userId as string;
   
   if (!userId) {
     return res.status(400).json({ error: 'userId parameter is required' });
   }
   
-  req.userId = userId;
-  next();
+  try {
+    // Ensure user exists in database, create if not
+    let user = await storage.getUser(userId);
+    if (!user) {
+      user = await storage.upsertUser({
+        id: userId,
+        email: `${userId}@example.com`,
+        firstName: 'User',
+        lastName: userId,
+        profileImageUrl: null,
+      });
+    }
+    req.userId = userId;
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error('User creation error:', error);
+    res.status(500).json({ error: 'Failed to initialize user' });
+  }
 };
 
 // Helper function to get variable definition
