@@ -6,6 +6,9 @@ import { insertVariableDefinitionSchema, insertVariableValueSchema, insertWebhoo
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import { pool } from "./db";
 
 // Rate limiting middleware
 const apiLimiter = rateLimit({
@@ -23,16 +26,17 @@ const variableLimiter = rateLimit({
 // WebSocket connection tracking
 const wsConnections = new Map<string, WebSocket>();
 
-// Simple middleware to extract userId from URL parameter and ensure user exists
+// Middleware to extract userId from session or URL parameter
 const extractUserId = async (req: any, res: any, next: any) => {
-  const userId = req.query.userId as string;
+  // Try session first, then query parameter for API compatibility
+  const userId = req.session?.userId || req.query.userId as string;
   
   if (!userId) {
-    return res.status(400).json({ error: 'userId parameter is required' });
+    return res.status(401).json({ error: 'Authentication required. Please log in.' });
   }
   
   try {
-    // Check if user exists in database - don't create automatically
+    // Check if user exists in database
     const user = await storage.getUser(userId);
     if (!user) {
       return res.status(401).json({ error: 'User not found. Please log in or sign up.' });
@@ -67,6 +71,23 @@ const broadcastUpdate = (event: string, data: any) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Session middleware
+  const PgSession = connectPgSimple(session);
+  app.use(session({
+    store: new PgSession({
+      pool,
+      tableName: 'sessions'
+    }),
+    secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+  }));
+
   // Security middleware
   app.use(helmet({
     contentSecurityPolicy: {
