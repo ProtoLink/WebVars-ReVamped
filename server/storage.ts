@@ -62,6 +62,8 @@ export interface IStorage {
   getStats(userId: string): Promise<{
     totalVariables: number;
     totalValues: number;
+    globalVariables: number;
+    privateVariables: number;
     apiRequestsToday: number;
     activeUsers: number;
   }>;
@@ -311,6 +313,8 @@ export class DatabaseStorage implements IStorage {
   async getStats(userId: string): Promise<{
     totalVariables: number;
     totalValues: number;
+    globalVariables: number;
+    privateVariables: number;
     apiRequestsToday: number;
     activeUsers: number;
   }> {
@@ -329,8 +333,11 @@ export class DatabaseStorage implements IStorage {
       return false;
     });
 
-    // Count global variables (those with "anyone" listPermission)
+    // Count global and private variables separately
     const globalVariables = allDefinitions.filter(def => def.listPermission === "anyone");
+    const privateVariables = allDefinitions.filter(def => 
+      def.ownerId === userId && def.listPermission === "definition_owner"
+    );
 
     // Get total values for global variables
     let totalGlobalValues = 0;
@@ -342,6 +349,8 @@ export class DatabaseStorage implements IStorage {
     return {
       totalVariables: visibleDefinitions.length,
       totalValues: totalGlobalValues,
+      globalVariables: globalVariables.length,
+      privateVariables: privateVariables.length,
       apiRequestsToday: 0, // Would need request logging to implement
       activeUsers: 1, // Simplified for now
     };

@@ -5,6 +5,8 @@ interface StatsCardsProps {
   stats: {
     totalVariables: number;
     totalValues: number;
+    globalVariables: number;
+    privateVariables: number;
     apiRequestsToday: number;
     activeUsers: number;
   };
@@ -14,7 +16,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
   const cards = [
     {
       title: "Private Variables",
-      value: stats.totalVariables,
+      value: stats.privateVariables,
       change: "available to you",
       icon: Database,
       iconColor: "text-blue-600",
@@ -22,7 +24,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
     },
     {
       title: "Global Variables",
-      value: stats.totalValues,
+      value: stats.globalVariables,
       change: "accessible to all",
       icon: Database,
       iconColor: "text-green-600",
