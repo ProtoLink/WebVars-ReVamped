@@ -330,6 +330,7 @@ const formSchema = z.object({
   scope: z.enum(["private", "global"]),
   type: z.string().min(1, "Variable type is required"),
   enumType: z.string().optional(), // For enum types
+  readOnly: z.boolean().default(false), // Read-only toggle
 });
 
 type FormData = z.infer<typeof formSchema>;
