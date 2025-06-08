@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Settings, Eye, FileText, BarChart3, Cloud } from "lucide-react";
+import { Plus, Settings, Eye, FileText, BarChart3, Cloud, Database } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -102,6 +102,28 @@ export default function Dashboard() {
       toast({
         title: "Error",
         description: error.message || "Failed to create variable",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Demo data creation mutation
+  const createDemoDataMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/demo/create", {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/stats"] });
+      toast({
+        title: "Demo Data Created",
+        description: "Sample Resonite variables have been added to your account",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create demo data",
         variant: "destructive",
       });
     },
@@ -266,6 +288,28 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-6">
+                {variables.length === 0 && (
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Quick Start</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-slate-600 mb-4">
+                        Get started quickly with sample Resonite variables including player scores, game settings, and avatar preferences.
+                      </p>
+                      <Button 
+                        onClick={() => createDemoDataMutation.mutate()}
+                        disabled={createDemoDataMutation.isPending}
+                        className="w-full"
+                        variant="outline"
+                      >
+                        <Database className="h-4 w-4 mr-2" />
+                        {createDemoDataMutation.isPending ? "Creating..." : "Add Demo Variables"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <CreateVariableForm
                   onSubmit={async (data) => {
                     await createVariableMutation.mutateAsync(data);

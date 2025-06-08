@@ -183,6 +183,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Demo data endpoint for development
+  app.post('/api/demo/create', authenticateRequest, async (req: any, res) => {
+    try {
+      const { createDemoData } = await import('./demo-data');
+      await createDemoData(req.userId);
+      res.json({ success: true, message: 'Demo data created successfully' });
+    } catch (error) {
+      console.error('Demo data creation error:', error);
+      res.status(500).json({ error: 'Failed to create demo data' });
+    }
+  });
+
   // Health check endpoint
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -431,7 +443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/v1/api-keys', authenticateApiKey, async (req: any, res) => {
+  app.post('/api/v1/api-keys', authenticateRequest, async (req: any, res) => {
     try {
       const { name } = req.body;
       
