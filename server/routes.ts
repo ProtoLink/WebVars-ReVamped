@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertVariableDefinitionSchema, insertVariableValueSchema, insertWebhookSchema, SUPPORTED_DATA_TYPES, PERMISSION_TYPES } from "@shared/schema";
 import { z } from "zod";
 import crypto from "crypto";
@@ -110,9 +111,22 @@ const broadcastUpdate = (event: string, data: any) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Auth middleware
+  await setupAuth(app);
+
   // Apply rate limiting to API routes
   app.use('/api', apiLimiter);
   app.use('/api/v1/variables', variableLimiter);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      res.json(req.user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
 
   // Health check endpoint
   app.get('/api/health', (req, res) => {

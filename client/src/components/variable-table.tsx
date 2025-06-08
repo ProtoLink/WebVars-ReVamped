@@ -88,17 +88,17 @@ export function VariableTable({ variables, onEdit, onView, onDelete }: VariableT
             <p className="text-slate-600 text-sm mt-1">Manage your persistent variables and their permissions</p>
           </div>
           <div className="flex items-center space-x-3">
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-none">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Search variables..."
-                className="pl-10 w-64"
+                className="pl-10 w-full sm:w-64"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-full sm:w-32">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -113,44 +113,121 @@ export function VariableTable({ variables, onEdit, onView, onDelete }: VariableT
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
+        {/* Mobile Card Layout */}
+        <div className="md:hidden">
+          {filteredVariables.map((variable) => (
+            <div key={variable.id} className="border-b border-slate-200 last:border-b-0">
+              <div className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                      {getTypeIcon(variable.type)}
+                    </div>
+                    <div>
+                      <div className="font-medium text-slate-900 text-sm">{variable.name}</div>
+                      <div className="text-xs text-slate-600">{variable.ownerType}-owned</div>
+                    </div>
+                  </div>
+                  <Badge className={`text-xs font-medium ${getTypeBadgeColor(variable.type)}`}>
+                    {variable.type}
+                  </Badge>
+                </div>
+                
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-xs font-medium text-slate-600">Value:</span>
+                    <code className="text-xs font-mono text-slate-700 ml-2 block mt-1 bg-slate-50 p-2 rounded">
+                      {variable.defaultValue || "null"}
+                    </code>
+                  </div>
+                  
+                  <div>
+                    <span className="text-xs font-medium text-slate-600">Permissions:</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {formatPermissions(variable.readPermission, variable.writePermission).map((perm, index) => (
+                        <Badge key={index} className={`text-xs font-medium ${perm.color}`}>
+                          {perm.label}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-600">
+                      {formatDistanceToNow(new Date(variable.updatedAt), { addSuffix: true })}
+                    </span>
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onEdit(variable)}
+                        className="text-slate-400 hover:text-slate-600 h-8 w-8 p-0"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onView(variable)}
+                        className="text-slate-400 hover:text-slate-600 h-8 w-8 p-0"
+                      >
+                        <Eye className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDelete(variable)}
+                        className="text-slate-400 hover:text-red-600 h-8 w-8 p-0"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table Layout */}
+        <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-slate-50">
-                <TableHead className="text-left py-3 px-6 text-sm font-medium text-slate-600">Name</TableHead>
-                <TableHead className="text-left py-3 px-6 text-sm font-medium text-slate-600">Type</TableHead>
-                <TableHead className="text-left py-3 px-6 text-sm font-medium text-slate-600">Value</TableHead>
-                <TableHead className="text-left py-3 px-6 text-sm font-medium text-slate-600">Permissions</TableHead>
-                <TableHead className="text-left py-3 px-6 text-sm font-medium text-slate-600">Last Updated</TableHead>
-                <TableHead className="text-left py-3 px-6 text-sm font-medium text-slate-600">Actions</TableHead>
+                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600">Name</TableHead>
+                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600">Type</TableHead>
+                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600">Value</TableHead>
+                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600">Permissions</TableHead>
+                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600">Updated</TableHead>
+                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredVariables.map((variable) => (
                 <TableRow key={variable.id} className="hover:bg-slate-50">
-                  <TableCell className="py-4 px-6">
+                  <TableCell className="py-4 px-4 lg:px-6">
                     <div className="flex items-center">
                       <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
                         {getTypeIcon(variable.type)}
                       </div>
                       <div>
-                        <div className="font-medium text-slate-900">{variable.name}</div>
-                        <div className="text-sm text-slate-600">{variable.ownerType}-owned</div>
+                        <div className="font-medium text-slate-900 text-sm">{variable.name}</div>
+                        <div className="text-xs text-slate-600">{variable.ownerType}-owned</div>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="py-4 px-6">
+                  <TableCell className="py-4 px-4 lg:px-6">
                     <Badge className={`text-xs font-medium ${getTypeBadgeColor(variable.type)}`}>
                       {variable.type}
                     </Badge>
                   </TableCell>
-                  <TableCell className="py-4 px-6">
-                    <code className="text-sm font-mono text-slate-700">
+                  <TableCell className="py-4 px-4 lg:px-6">
+                    <code className="text-xs font-mono text-slate-700 max-w-24 truncate block">
                       {variable.defaultValue || "null"}
                     </code>
                   </TableCell>
-                  <TableCell className="py-4 px-6">
-                    <div className="flex space-x-1">
+                  <TableCell className="py-4 px-4 lg:px-6">
+                    <div className="flex flex-wrap gap-1">
                       {formatPermissions(variable.readPermission, variable.writePermission).map((perm, index) => (
                         <Badge key={index} className={`text-xs font-medium ${perm.color}`}>
                           {perm.label}
@@ -158,16 +235,16 @@ export function VariableTable({ variables, onEdit, onView, onDelete }: VariableT
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell className="py-4 px-6 text-sm text-slate-600">
+                  <TableCell className="py-4 px-4 lg:px-6 text-xs text-slate-600">
                     {formatDistanceToNow(new Date(variable.updatedAt), { addSuffix: true })}
                   </TableCell>
-                  <TableCell className="py-4 px-6">
-                    <div className="flex items-center space-x-2">
+                  <TableCell className="py-4 px-4 lg:px-6">
+                    <div className="flex items-center space-x-1">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => onEdit(variable)}
-                        className="text-slate-400 hover:text-slate-600"
+                        className="text-slate-400 hover:text-slate-600 h-8 w-8 p-0"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -175,7 +252,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete }: VariableT
                         variant="ghost"
                         size="sm"
                         onClick={() => onView(variable)}
-                        className="text-slate-400 hover:text-slate-600"
+                        className="text-slate-400 hover:text-slate-600 h-8 w-8 p-0"
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -183,7 +260,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete }: VariableT
                         variant="ghost"
                         size="sm"
                         onClick={() => onDelete(variable)}
-                        className="text-slate-400 hover:text-red-600"
+                        className="text-slate-400 hover:text-red-600 h-8 w-8 p-0"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
