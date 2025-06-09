@@ -1,132 +1,80 @@
 import { storage } from "./storage";
 
 export async function createDemoData(userId: string) {
-  // Create sample variable definitions from various mock users
-  // Mix of global and private variables with different read-only statuses
+  // Create sample variable definitions following Resonite cloud variable patterns
+  // Mix of global (system-owned) and private (user-owned) variables
   const demoVariables = [
-    // Global variables from different creators
+    // Global variables (system-owned, accessible to all users)
     {
       name: "Player.Score",
       type: "string",
       defaultValue: "1500",
-      ownerId: "GameMaster_Alex",
+      ownerId: "system",
       ownerType: "user",
       readPermission: "anyone",
       writePermission: "variable_owner", 
-      listPermission: "anyone",
-      isReadOnly: true
+      listPermission: "anyone"
     },
     {
-      name: "Server.MaxPlayers",
+      name: "Game.Settings",
       type: "string",
-      defaultValue: "32",
-      ownerId: "ServerAdmin_Sarah",
+      defaultValue: '{"difficulty":"normal","volume":0.8}',
+      ownerId: "system",
       ownerType: "user",
       readPermission: "anyone",
       writePermission: "variable_owner",
-      listPermission: "anyone",
-      isReadOnly: true
+      listPermission: "anyone"
     },
     {
-      name: "World.Gravity",
+      name: "User.IsOnline",
       type: "string",
-      defaultValue: "9.81",
-      ownerId: "WorldBuilder_Mike",
-      ownerType: "user",
-      readPermission: "anyone",
-      writePermission: "variable_owner",
-      listPermission: "anyone",
-      isReadOnly: false
-    },
-    {
-      name: "Event.Christmas2024",
-      type: "string",
-      defaultValue: "active",
-      ownerId: "EventManager_Luna",
+      defaultValue: "false",
+      ownerId: "system",
       ownerType: "user", 
       readPermission: "anyone",
       writePermission: "variable_owner",
-      listPermission: "anyone",
-      isReadOnly: true
+      listPermission: "anyone"
     },
     {
-      name: "Weather.System",
+      name: "Avatar.Height",
       type: "string",
-      defaultValue: "sunny",
-      ownerId: "WeatherBot_Auto",
+      defaultValue: "1.75",
+      ownerId: "system",
       ownerType: "user",
       readPermission: "anyone",
       writePermission: "variable_owner",
-      listPermission: "anyone",
-      isReadOnly: false
+      listPermission: "anyone"
     },
+    // Private variables (user-owned, only visible to owner)
     {
-      name: "Economy.ExchangeRate",
+      name: `${userId}.PrivateNotes`,
       type: "string",
-      defaultValue: "1.25",
-      ownerId: "EconomyManager_Dev",
-      ownerType: "user",
-      readPermission: "anyone",
-      writePermission: "variable_owner",
-      listPermission: "anyone",
-      isReadOnly: true
-    },
-    // Private variables from different users
-    {
-      name: "CrafterJoe.Blueprint",
-      type: "string",
-      defaultValue: "secret_recipe_v2",
-      ownerId: "CrafterJoe",
-      ownerType: "user",
-      readPermission: "definition_owner",
-      writePermission: "definition_owner",
-      listPermission: "definition_owner",
-      isReadOnly: false
-    },
-    {
-      name: "BuilderSam.ProjectData",
-      type: "string",
-      defaultValue: '{"walls":45,"floors":12,"furniture":89}',
-      ownerId: "BuilderSam",
-      ownerType: "user",
-      readPermission: "definition_owner",
-      writePermission: "definition_owner",
-      listPermission: "definition_owner",
-      isReadOnly: true
-    },
-    {
-      name: "ArtistZoe.Gallery",
-      type: "string",
-      defaultValue: '["painting1","sculpture2","digital3"]',
-      ownerId: "ArtistZoe",
-      ownerType: "user",
-      readPermission: "definition_owner",
-      writePermission: "definition_owner",
-      listPermission: "definition_owner",
-      isReadOnly: false
-    },
-    {
-      name: "MusicianMax.Playlist",
-      type: "string",
-      defaultValue: "jazz_collection_2024",
-      ownerId: "MusicianMax",
-      ownerType: "user",
-      readPermission: "definition_owner",
-      writePermission: "definition_owner",
-      listPermission: "definition_owner",
-      isReadOnly: true
-    },
-    // Current user's private variables
-    {
-      name: `${userId}.PersonalNotes`,
-      type: "string",
-      defaultValue: "My private workspace notes",
+      defaultValue: "My private notes...",
       ownerId: userId,
       ownerType: "user",
       readPermission: "definition_owner",
       writePermission: "definition_owner",
-      listPermission: "definition_owner",
-      isReadOnly: false
+      listPermission: "definition_owner"
+    },
+    {
+      name: `${userId}.SecretConfig`,
+      type: "string",
+      defaultValue: '{"apiKey":"hidden","personalSettings":true}',
+      ownerId: userId,
+      ownerType: "user",
+      readPermission: "definition_owner",
+      writePermission: "definition_owner",
+      listPermission: "definition_owner"
+    },
+    {
+      name: `${userId}.Inventory`,
+      type: "string",
+      defaultValue: '["sword","potion","map"]',
+      ownerId: userId,
+      ownerType: "user",
+      readPermission: "definition_owner",
+      writePermission: "definition_owner",
+      listPermission: "definition_owner"
     }
   ];
 
@@ -163,50 +111,31 @@ export async function createDemoData(userId: string) {
       }
       
       await storage.createVariableDefinition(variable);
-      console.log(`Created demo variable: ${variable.name} (${variable.listPermission === "anyone" ? "global" : "private"}) - ReadOnly: ${variable.isReadOnly}`);
+      console.log(`Created demo variable: ${variable.name} (${variable.ownerId === "system" ? "global" : "private"})`);
       
       // Create initial values
       const definition = await storage.getVariableDefinition(variable.name);
       if (definition) {
         let initialValue = variable.defaultValue;
         
-        // For global variables, create creator values and some user values
-        if (variable.listPermission === "anyone") {
-          // Create creator's value first
-          await storage.setVariableValue({
-            definitionId: definition.id,
-            ownerId: variable.ownerId,
-            value: initialValue
-          });
-          
-          // For non-read-only variables, create user-specific values
-          if (!variable.isReadOnly) {
-            if (variable.name === "Player.Score") {
-              initialValue = Math.floor(Math.random() * 3000 + 1000).toString();
-            } else if (variable.name === "World.Gravity") {
-              initialValue = (Math.random() * 2 + 8).toFixed(2);
-            } else if (variable.name === "Weather.System") {
-              const weather = ["sunny", "rainy", "cloudy", "snowy"];
-              initialValue = weather[Math.floor(Math.random() * weather.length)];
-            }
-            
-            await storage.setVariableValue({
-              definitionId: definition.id,
-              ownerId: userId,
-              value: initialValue
-            });
-          }
-        } else {
-          // For private variables, only create value if current user is owner
-          if (variable.ownerId === userId) {
-            await storage.setVariableValue({
-              definitionId: definition.id,
-              ownerId: userId,
-              value: initialValue
-            });
+        // For global variables, create user-specific values
+        if (variable.ownerId === "system") {
+          if (variable.name === "Player.Score") {
+            initialValue = "2100";
+          } else if (variable.name === "User.IsOnline") {
+            initialValue = "true";
+          } else if (variable.name === "Avatar.Height") {
+            initialValue = Math.random() > 0.5 ? "1.8" : "1.7";
           }
         }
-        console.log(`Created values for ${variable.name}`);
+        // For private variables, the owner is the same as the value owner
+        
+        await storage.setVariableValue({
+          definitionId: definition.id,
+          ownerId: userId,
+          value: initialValue
+        });
+        console.log(`Created value for ${variable.name} for user ${userId}`);
       }
     } catch (error) {
       console.error(`Error creating demo variable ${variable.name}:`, error);
