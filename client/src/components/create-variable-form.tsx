@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { SUPPORTED_DATA_TYPES, PERMISSION_TYPES, RESONITE_ENUMS } from "@shared/schema";
 import { RESONITE_ENUM_VALUES, getEnumCategories, getEnumValues } from "@shared/resonite-enums";
@@ -330,6 +331,7 @@ const formSchema = z.object({
   scope: z.enum(["private", "global"]),
   type: z.string().min(1, "Variable type is required"),
   enumType: z.string().optional(), // For enum types
+  isReadOnly: z.boolean().default(false),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -351,6 +353,7 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
       scope: "private",
       type: "string",
       enumType: "",
+      isReadOnly: false,
     },
   });
 
@@ -583,6 +586,29 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
                 </div>
               </FormControl>
               <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="isReadOnly"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">
+                  Read-Only Variable
+                </FormLabel>
+                <div className="text-sm text-muted-foreground">
+                  When enabled, only you can modify this variable via the web dashboard. API modifications will be blocked.
+                </div>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
             </FormItem>
           )}
         />

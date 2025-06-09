@@ -5,11 +5,18 @@ import { setupVite, serveStatic, log } from "./vite";
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy for rate limiting
 
-// Add middleware to handle raw text input for variable endpoints
-app.use('/api/v1/variables/:name', express.text({ type: '*/*' }));
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Add middleware to handle raw text input for variable endpoints (only for non-JSON requests)
+app.use('/api/v1/variables/:name', (req, res, next) => {
+  const contentType = req.headers['content-type'] || '';
+  if (!contentType.includes('application/json')) {
+    express.text({ type: '*/*' })(req, res, next);
+  } else {
+    next();
+  }
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

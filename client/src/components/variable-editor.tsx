@@ -275,6 +275,7 @@ interface VariableDefinition {
   readPermission: string;
   writePermission: string;
   listPermission: string;
+  isReadOnly: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -284,13 +285,20 @@ interface VariableEditorProps {
   isOpen: boolean;
   onClose: () => void;
   mode: 'edit' | 'view';
+  userId?: string;
 }
 
-export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEditorProps) {
+export function VariableEditor({ variable, isOpen, onClose, mode, userId }: VariableEditorProps) {
   const [value, setValue] = useState('');
   const [isLoadingValue, setIsLoadingValue] = useState(false);
+  const [localVariable, setLocalVariable] = useState(variable);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Update local variable when prop changes
+  React.useEffect(() => {
+    setLocalVariable(variable);
+  }, [variable]);
 
   // Parse different data types
   const parseValue = (val: string, type: string) => {
@@ -341,16 +349,25 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
 
   const updateMutation = useMutation({
     mutationFn: async (newValue: string) => {
-      return await apiRequest("POST", `/api/v1/variables/${variable?.name}`, { 
-        value: newValue 
-      });
+      // For read-only variables, creators can still modify through web dashboard
+      // by using a special endpoint that bypasses read-only restrictions
+      if (localVariable?.isReadOnly) {
+        return await apiRequest("PATCH", `/api/v1/definitions/${localVariable.id}/value`, { 
+          value: newValue 
+        });
+      } else {
+        return await apiRequest("POST", `/api/v1/variables/${localVariable?.name}`, { 
+          value: newValue 
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/v1/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/variable-values"] });
       toast({
         title: "Your Value Updated",
-        description: `Your personal value for "${variable?.name}" has been saved`,
+        description: `Your personal value for "${localVariable?.name}" has been saved`,
       });
       onClose();
     },
@@ -358,6 +375,53 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
       toast({
         title: "Update Failed",
         description: error.message || "Failed to update variable",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation for toggling read-only status
+  const toggleReadOnlyMutation = useMutation({
+    mutationFn: async (isReadOnly: boolean) => {
+      // Optimistically update local state immediately
+      if (localVariable) {
+        setLocalVariable({ ...localVariable, isReadOnly });
+      }
+      
+      const response = await fetch(`/api/v1/definitions/${localVariable?.id}/readonly`, {
+        method: 'PATCH',
+        body: JSON.stringify({ isReadOnly }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Failed to update read-only status');
+      return response.json();
+    },
+    onSuccess: (data, isReadOnly) => {
+      // Update the variable in the cache
+      queryClient.setQueryData(["/api/v1/definitions"], (oldData: any) => {
+        if (!oldData?.data) return oldData;
+        return {
+          ...oldData,
+          data: oldData.data.map((v: any) => 
+            v.id === localVariable?.id ? { ...v, isReadOnly } : v
+          )
+        };
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
+      toast({
+        title: "Read-Only Status Updated",
+        description: `Variable is now ${isReadOnly ? 'read-only' : 'editable'}`,
+      });
+    },
+    onError: (error, isReadOnly) => {
+      // Revert optimistic update on error
+      if (localVariable) {
+        setLocalVariable({ ...localVariable, isReadOnly: !isReadOnly });
+      }
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update read-only status",
         variant: "destructive",
       });
     },
@@ -415,19 +479,24 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
     }
   }, [variable, isOpen]);
 
-  if (!variable) return null;
+  if (!localVariable) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'edit' ? 'Set Your Value' : 'Your Value'} for {variable.name}
+            {mode === 'edit' ? 'Set Your Value' : 'Your Value'} for {localVariable.name}
+            {localVariable.isReadOnly && (
+              <span className="ml-2 text-sm text-blue-600 font-normal">(Read-Only)</span>
+            )}
           </DialogTitle>
           <DialogDescription>
             {mode === 'edit' 
-              ? `Set your personal value for the ${variable.type} variable "${variable.name}". This won't affect other users' values.`
-              : `View your current personal value for the ${variable.type} variable "${variable.name}".`
+              ? localVariable.isReadOnly 
+                ? `Set the value for this read-only variable "${localVariable.name}". Only you can modify this through the web dashboard.`
+                : `Set your personal value for the ${localVariable.type} variable "${localVariable.name}". This won't affect other users' values.`
+              : `View your current personal value for the ${localVariable.type} variable "${localVariable.name}".`
             }
           </DialogDescription>
         </DialogHeader>
@@ -436,12 +505,36 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
           <div className="space-y-2">
             <Label>Variable Information</Label>
             <div className="text-sm text-slate-600 space-y-1">
-              <div>Type: <span className="font-mono">{variable.type}</span></div>
-              <div>Owner: {variable.ownerType}</div>
-              <div>Permissions: R:{variable.readPermission} W:{variable.writePermission}</div>
-              <div>Default: <span className="font-mono text-xs bg-slate-100 px-1 rounded">{variable.defaultValue || 'null'}</span></div>
+              <div>Type: <span className="font-mono">{localVariable.type}</span></div>
+              <div>Owner: {localVariable.ownerType}</div>
+              <div>Permissions: R:{localVariable.readPermission} W:{localVariable.writePermission}</div>
+              {localVariable.isReadOnly && (
+                <div className="text-blue-600 font-medium">Status: Read-Only (API modifications blocked)</div>
+              )}
+              <div>Default: <span className="font-mono text-xs bg-slate-100 px-1 rounded">{localVariable.defaultValue || 'null'}</span></div>
             </div>
           </div>
+
+          {/* Read-only toggle for variable creators */}
+          {localVariable.ownerId === userId && mode === 'edit' && (
+            <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label className="text-base">
+                  Read-Only Variable
+                </Label>
+                <div className="text-sm text-muted-foreground">
+                  When enabled, only you can modify this variable via the web dashboard. API modifications will be blocked.
+                </div>
+              </div>
+              <Switch
+                checked={localVariable.isReadOnly}
+                onCheckedChange={(isReadOnly) =>
+                  toggleReadOnlyMutation.mutate(isReadOnly)
+                }
+                disabled={toggleReadOnlyMutation.isPending}
+              />
+            </div>
+          )}
 
           {isLoadingValue ? (
             <div className="flex items-center justify-center py-8">
