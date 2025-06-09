@@ -635,6 +635,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Demo data creation endpoint
+  app.post('/api/v1/demo-data', extractUserId, async (req: any, res) => {
+    try {
+      const { createDemoData } = await import('./demo-data');
+      await createDemoData(req.userId);
+      
+      res.json({
+        success: true,
+        message: 'Demo data created successfully'
+      });
+    } catch (error) {
+      console.error('Demo data creation error:', error);
+      res.status(500).json({ error: 'Failed to create demo data' });
+    }
+  });
+
   // Toggle variable read-only status
   app.patch('/api/v1/definitions/:id/readonly', extractUserId, async (req: any, res) => {
     try {
