@@ -5,16 +5,44 @@ import { setupVite, serveStatic, log } from "./vite";
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy for rate limiting
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-// Add middleware to handle raw text input for variable endpoints (only for non-JSON requests)
-app.use('/api/v1/variables/:name', (req, res, next) => {
+// Enhanced middleware to handle both JSON and text/plain content parsing
+app.use((req, res, next) => {
   const contentType = req.headers['content-type'] || '';
-  if (!contentType.includes('application/json')) {
-    express.text({ type: '*/*' })(req, res, next);
+  const isVariableEndpoint = req.path.startsWith('/api/v1/variables') && req.method !== 'GET';
+  
+  if (isVariableEndpoint) {
+    // For variable endpoints, always try text parsing first, then JSON if needed
+    if (contentType.includes('text/plain')) {
+      express.text({ type: 'text/plain' })(req, res, next);
+    } else if (contentType.includes('application/json')) {
+      // Try JSON first, but fallback to text if it fails
+      express.raw({ type: 'application/json' })(req, res, (err) => {
+        if (err) {
+          express.text({ type: '*/*' })(req, res, next);
+        } else {
+          try {
+            req.body = JSON.parse(req.body.toString());
+            next();
+          } catch (parseErr) {
+            // JSON parsing failed, treat as text
+            req.body = req.body.toString();
+            next();
+          }
+        }
+      });
+    } else {
+      // Default to text for variable endpoints with unknown content types
+      express.text({ type: '*/*' })(req, res, next);
+    }
   } else {
-    next();
+    // For non-variable endpoints, use standard parsing
+    if (contentType.includes('application/json')) {
+      express.json()(req, res, next);
+    } else if (contentType.includes('application/x-www-form-urlencoded')) {
+      express.urlencoded({ extended: false })(req, res, next);
+    } else {
+      next();
+    }
   }
 });
 
