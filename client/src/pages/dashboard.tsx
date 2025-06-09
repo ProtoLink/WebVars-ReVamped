@@ -146,6 +146,29 @@ export default function Dashboard({ userId }: DashboardProps) {
     },
   });
 
+  // Demo data creation mutation
+  const createDemoDataMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/v1/demo-data`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/stats", { userId }] });
+      toast({
+        title: "Demo Data Created",
+        description: "Sample variables from different users created successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create demo data",
+        variant: "destructive",
+      });
+    },
+  });
+
   // API Explorer send request function
   const handleApiRequest = async (request: {
     method: string;
@@ -252,6 +275,16 @@ export default function Dashboard({ userId }: DashboardProps) {
             </div>
             
             <div className="flex space-x-2">
+              <Button
+                onClick={() => createDemoDataMutation.mutate()}
+                variant="outline"
+                size="sm"
+                disabled={createDemoDataMutation.isPending}
+                className="w-full sm:w-auto bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/30"
+              >
+                <Database className="h-4 w-4 mr-2" />
+                {createDemoDataMutation.isPending ? 'Creating...' : 'Demo Data'}
+              </Button>
               <Button
                 onClick={() => window.open("/donate", "_blank")}
                 variant="outline"
