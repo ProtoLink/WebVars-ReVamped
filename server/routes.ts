@@ -370,7 +370,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { name } = req.params;
       const definition = await getVariableDefinition(name);
-      const ownerId = req.query.owner || req.userId;
+      
+      // For read-only variables, always return the creator's value regardless of requester
+      const ownerId = definition.isReadOnly ? definition.ownerId : (req.query.owner || req.userId);
       
       const value = await storage.getVariableValue(definition.id, ownerId);
       
