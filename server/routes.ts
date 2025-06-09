@@ -457,6 +457,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { name } = req.params;
       const definition = await getVariableDefinition(name);
       
+      // Check if variable is read-only
+      if (definition.isReadOnly) {
+        const wantsJson = req.headers.accept?.includes('application/json') || req.query.format === 'json';
+        if (wantsJson) {
+          return res.status(403).json({ error: 'Variable is read-only and can only be modified by the owner via web dashboard' });
+        } else {
+          return res.status(403).set('Content-Type', 'text/plain').send('Error: Variable is read-only');
+        }
+      }
+      
       // Handle both JSON and plain text input
       let value;
       const contentType = req.headers['content-type'] || '';
@@ -476,7 +486,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const ownerId = (contentType.includes('application/json') && typeof req.body === 'object' ? req.body.owner : undefined) || req.userId;
+      // For read-only variables, the value is locked to the creator's value
+      // For regular variables, allow owner specification via JSON or default to current user
+      const ownerId = definition.isReadOnly ? definition.ownerId : 
+        ((contentType.includes('application/json') && typeof req.body === 'object' ? req.body.owner : undefined) || req.userId);
 
       if (value === undefined || value === null || value === '') {
         const wantsJson = req.headers.accept?.includes('application/json') || req.query.format === 'json';
@@ -587,6 +600,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Search error:', error);
       res.status(500).json({ error: 'Search failed' });
+    }
+  });
+
+  // Toggle variable read-only status
+  app.patch('/api/v1/definitions/:id/readonly', extractUserId, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { isReadOnly } = req.body;
+      
+      if (typeof isReadOnly !== 'boolean') {
+        return res.status(400).json({ error: 'isReadOnly must be a boolean value' });
+      }
+      
+      const updated = await storage.toggleVariableReadOnly(parseInt(id), isReadOnly, req.userId);
+      
+      broadcastUpdate('variable_definition_updated', {
+        id: updated.id,
+        name: updated.name,
+        isReadOnly: updated.isReadOnly
+      });
+      
+      res.json({ success: true, data: updated });
+    } catch (error) {
+      console.error('Toggle read-only error:', error);
+      if (error instanceof Error && error.message === 'Variable not found or access denied') {
+        res.status(404).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: 'Failed to update variable read-only status' });
+      }
     }
   });
 

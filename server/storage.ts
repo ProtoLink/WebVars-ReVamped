@@ -36,6 +36,7 @@ export interface IStorage {
   createVariableDefinition(definition: InsertVariableDefinition): Promise<VariableDefinition>;
   updateVariableDefinition(id: number, updates: UpdateVariableDefinition): Promise<VariableDefinition>;
   deleteVariableDefinition(id: number): Promise<void>;
+  toggleVariableReadOnly(id: number, isReadOnly: boolean, ownerId: string): Promise<VariableDefinition>;
 
   // Variable value operations
   getVariableValue(definitionId: number, ownerId: string): Promise<VariableValue | undefined>;
@@ -169,6 +170,23 @@ export class DatabaseStorage implements IStorage {
 
   async deleteVariableDefinition(id: number): Promise<void> {
     await db.delete(variableDefinitions).where(eq(variableDefinitions.id, id));
+  }
+
+  async toggleVariableReadOnly(id: number, isReadOnly: boolean, ownerId: string): Promise<VariableDefinition> {
+    const [updated] = await db
+      .update(variableDefinitions)
+      .set({ isReadOnly, updatedAt: new Date() })
+      .where(and(
+        eq(variableDefinitions.id, id),
+        eq(variableDefinitions.ownerId, ownerId)
+      ))
+      .returning();
+    
+    if (!updated) {
+      throw new Error("Variable not found or access denied");
+    }
+    
+    return updated;
   }
 
   // Variable value operations

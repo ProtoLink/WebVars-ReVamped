@@ -48,6 +48,7 @@ export const variableDefinitions = pgTable("variable_definitions", {
   readPermission: varchar("read_permission", { length: 50 }).notNull().default("variable_owner"),
   writePermission: varchar("write_permission", { length: 50 }).notNull().default("variable_owner"),
   listPermission: varchar("list_permission", { length: 50 }).notNull().default("definition_owner"),
+  isReadOnly: boolean("is_read_only").notNull().default(false), // When true, only creator can modify via web dashboard
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
