@@ -388,7 +388,7 @@ export function VariableEditor({ variable, isOpen, onClose, mode, userId }: Vari
         setLocalVariable({ ...localVariable, isReadOnly });
       }
       
-      const response = await fetch(`/api/v1/definitions/${variable?.id}/readonly`, {
+      const response = await fetch(`/api/v1/definitions/${localVariable?.id}/readonly`, {
         method: 'PATCH',
         body: JSON.stringify({ isReadOnly }),
         headers: { 'Content-Type': 'application/json' }
@@ -403,7 +403,7 @@ export function VariableEditor({ variable, isOpen, onClose, mode, userId }: Vari
         return {
           ...oldData,
           data: oldData.data.map((v: any) => 
-            v.id === variable?.id ? { ...v, isReadOnly } : v
+            v.id === localVariable?.id ? { ...v, isReadOnly } : v
           )
         };
       });
