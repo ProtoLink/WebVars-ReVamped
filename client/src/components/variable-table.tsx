@@ -370,6 +370,26 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                       })()}
                     </div>
                   </TableCell>
+                  <TableCell className="py-4 px-4 lg:px-6">
+                    <div className="flex items-center space-x-2">
+                      {variable.isReadOnly && (
+                        <ShieldCheck className="h-4 w-4 text-blue-600" />
+                      )}
+                      {variable.ownerId === userId ? (
+                        <Switch
+                          checked={variable.isReadOnly}
+                          onCheckedChange={(isReadOnly) =>
+                            toggleReadOnlyMutation.mutate({ id: variable.id, isReadOnly })
+                          }
+                          disabled={toggleReadOnlyMutation.isPending}
+                        />
+                      ) : (
+                        <span className="text-xs text-slate-500">
+                          {variable.isReadOnly ? "Read-Only" : "Editable"}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="py-4 px-4 lg:px-6 text-xs text-slate-600 dark:text-slate-400">
                     {formatDistanceToNow(new Date(variable.updatedAt), { addSuffix: true })}
                   </TableCell>

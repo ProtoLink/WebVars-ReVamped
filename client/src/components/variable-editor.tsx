@@ -275,6 +275,7 @@ interface VariableDefinition {
   readPermission: string;
   writePermission: string;
   listPermission: string;
+  isReadOnly: boolean;
   createdAt: string;
   updatedAt: string;
 }
