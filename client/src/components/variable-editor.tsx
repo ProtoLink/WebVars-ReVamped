@@ -342,9 +342,17 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
 
   const updateMutation = useMutation({
     mutationFn: async (newValue: string) => {
-      return await apiRequest("POST", `/api/v1/variables/${variable?.name}`, { 
-        value: newValue 
-      });
+      // For read-only variables, creators can still modify through web dashboard
+      // by using a special endpoint that bypasses read-only restrictions
+      if (variable?.isReadOnly) {
+        return await apiRequest("PATCH", `/api/v1/definitions/${variable.id}/value`, { 
+          value: newValue 
+        });
+      } else {
+        return await apiRequest("POST", `/api/v1/variables/${variable?.name}`, { 
+          value: newValue 
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
@@ -424,10 +432,15 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
         <DialogHeader>
           <DialogTitle>
             {mode === 'edit' ? 'Set Your Value' : 'Your Value'} for {variable.name}
+            {variable.isReadOnly && (
+              <span className="ml-2 text-sm text-blue-600 font-normal">(Read-Only)</span>
+            )}
           </DialogTitle>
           <DialogDescription>
             {mode === 'edit' 
-              ? `Set your personal value for the ${variable.type} variable "${variable.name}". This won't affect other users' values.`
+              ? variable.isReadOnly 
+                ? `Set the value for this read-only variable "${variable.name}". Only you can modify this through the web dashboard.`
+                : `Set your personal value for the ${variable.type} variable "${variable.name}". This won't affect other users' values.`
               : `View your current personal value for the ${variable.type} variable "${variable.name}".`
             }
           </DialogDescription>
@@ -440,6 +453,9 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
               <div>Type: <span className="font-mono">{variable.type}</span></div>
               <div>Owner: {variable.ownerType}</div>
               <div>Permissions: R:{variable.readPermission} W:{variable.writePermission}</div>
+              {variable.isReadOnly && (
+                <div className="text-blue-600 font-medium">Status: Read-Only (API modifications blocked)</div>
+              )}
               <div>Default: <span className="font-mono text-xs bg-slate-100 px-1 rounded">{variable.defaultValue || 'null'}</span></div>
             </div>
           </div>

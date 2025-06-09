@@ -632,6 +632,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update read-only variable value via web dashboard (for creators only)
+  app.patch('/api/v1/definitions/:id/value', extractUserId, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { value } = req.body;
+      
+      if (value === undefined || value === null) {
+        return res.status(400).json({ error: 'Value is required' });
+      }
+      
+      // Get the variable definition to check ownership and read-only status
+      const definitions = await storage.getVariableDefinitions();
+      const definition = definitions.find(def => def.id === parseInt(id));
+      
+      if (!definition) {
+        return res.status(404).json({ error: 'Variable definition not found' });
+      }
+      
+      // Only allow the creator to modify read-only variables via web dashboard
+      if (definition.ownerId !== req.userId) {
+        return res.status(403).json({ error: 'Only the variable creator can modify this read-only variable' });
+      }
+      
+      if (!definition.isReadOnly) {
+        return res.status(400).json({ error: 'This endpoint is only for read-only variables. Use the regular API for editable variables.' });
+      }
+      
+      // Set the value for the creator (owner)
+      const variableValue = await storage.setVariableValue({
+        definitionId: definition.id,
+        ownerId: definition.ownerId,
+        value: String(value)
+      });
+      
+      broadcastUpdate('variable_updated', {
+        name: definition.name,
+        value: variableValue.value,
+        owner: variableValue.ownerId
+      });
+      
+      res.json({ success: true, data: variableValue });
+    } catch (error) {
+      console.error('Update read-only variable value error:', error);
+      res.status(500).json({ error: 'Failed to update read-only variable value' });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
 
