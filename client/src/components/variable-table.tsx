@@ -2,13 +2,15 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Eye, Trash2, Search, Database, Copy, Globe, Lock, User } from "lucide-react";
+import { Edit, Eye, Trash2, Search, Database, Copy, Globe, Lock, User, ShieldCheck } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface VariableDefinition {
   id: number;
@@ -21,6 +23,7 @@ interface VariableDefinition {
   readPermission: string;
   writePermission: string;
   listPermission: string;
+  isReadOnly: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -85,6 +88,33 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
   
   // Fetch user-specific variable values
   const { data: variableValues = {} } = useVariableValues(variables, userId);
+
+  // Mutation for toggling read-only status
+  const toggleReadOnlyMutation = useMutation({
+    mutationFn: async ({ id, isReadOnly }: { id: number; isReadOnly: boolean }) => {
+      const response = await fetch(`/api/v1/definitions/${id}/readonly`, {
+        method: 'PATCH',
+        body: JSON.stringify({ isReadOnly }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Failed to update read-only status');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/definitions'] });
+      toast({
+        title: "Success",
+        description: "Variable read-only status updated",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update read-only status",
+        variant: "destructive",
+      });
+    },
+  });
 
   const filteredVariables = variables.filter(variable => {
     return variable.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -269,6 +299,7 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
               <TableRow className="bg-slate-50 dark:bg-slate-800">
                 <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600 dark:text-slate-400">Name</TableHead>
                 <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600 dark:text-slate-400">Value</TableHead>
+                <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600 dark:text-slate-400">Read-Only</TableHead>
                 <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600 dark:text-slate-400">Updated</TableHead>
                 <TableHead className="text-left py-3 px-4 lg:px-6 text-sm font-medium text-slate-600 dark:text-slate-400">Actions</TableHead>
               </TableRow>
