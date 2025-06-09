@@ -365,7 +365,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     return {
-      totalVariables: visibleDefinitions.length,
+      totalVariables: allDefinitions.length, // Total count of ALL definitions in database
       totalValues: totalGlobalValues,
       globalVariables: globalVariables.length,
       privateVariables: privateVariables.length,
