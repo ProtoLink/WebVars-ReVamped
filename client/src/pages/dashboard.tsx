@@ -513,6 +513,7 @@ export default function Dashboard({ userId }: DashboardProps) {
           setSelectedVariable(null);
         }}
         mode={editorMode}
+        userId={userId}
       />
 
       {/* Delete Confirmation Dialog */}

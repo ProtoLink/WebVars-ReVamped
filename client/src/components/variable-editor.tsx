@@ -285,9 +285,10 @@ interface VariableEditorProps {
   isOpen: boolean;
   onClose: () => void;
   mode: 'edit' | 'view';
+  userId?: string;
 }
 
-export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEditorProps) {
+export function VariableEditor({ variable, isOpen, onClose, mode, userId }: VariableEditorProps) {
   const [value, setValue] = useState('');
   const [isLoadingValue, setIsLoadingValue] = useState(false);
   const { toast } = useToast();
@@ -368,6 +369,33 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
       toast({
         title: "Update Failed",
         description: error.message || "Failed to update variable",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation for toggling read-only status
+  const toggleReadOnlyMutation = useMutation({
+    mutationFn: async (isReadOnly: boolean) => {
+      const response = await fetch(`/api/v1/definitions/${variable?.id}/readonly`, {
+        method: 'PATCH',
+        body: JSON.stringify({ isReadOnly }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Failed to update read-only status');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
+      toast({
+        title: "Read-Only Status Updated",
+        description: `Variable is now ${variable?.isReadOnly ? 'editable' : 'read-only'}`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update read-only status",
         variant: "destructive",
       });
     },
@@ -460,6 +488,27 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
               <div>Default: <span className="font-mono text-xs bg-slate-100 px-1 rounded">{variable.defaultValue || 'null'}</span></div>
             </div>
           </div>
+
+          {/* Read-only toggle for variable creators */}
+          {variable.ownerId === userId && mode === 'edit' && (
+            <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label className="text-base">
+                  Read-Only Variable
+                </Label>
+                <div className="text-sm text-muted-foreground">
+                  When enabled, only you can modify this variable via the web dashboard. API modifications will be blocked.
+                </div>
+              </div>
+              <Switch
+                checked={variable.isReadOnly}
+                onCheckedChange={(isReadOnly) =>
+                  toggleReadOnlyMutation.mutate(isReadOnly)
+                }
+                disabled={toggleReadOnlyMutation.isPending}
+              />
+            </div>
+          )}
 
           {isLoadingValue ? (
             <div className="flex items-center justify-center py-8">
