@@ -471,12 +471,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let value;
       const contentType = req.headers['content-type'] || '';
       
-      if (contentType.includes('application/json') && typeof req.body === 'object') {
+      console.log('Request details:', {
+        contentType,
+        bodyType: typeof req.body,
+        body: req.body
+      });
+      
+      if (contentType.includes('application/json') && typeof req.body === 'object' && req.body !== null) {
         // JSON input: extract value from body object
         value = req.body.value;
+        console.log('Extracted value from JSON:', value);
       } else {
         // Plain text input: use entire body as value
         value = req.body;
+        console.log('Using body as value:', value);
         
         // Convert numerical enum index to enum name for text/plain input
         if (definition.type === 'enum' && definition.enumType && isNumericString(String(value))) {
