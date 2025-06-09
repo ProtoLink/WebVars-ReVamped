@@ -5,16 +5,35 @@ import { setupVite, serveStatic, log } from "./vite";
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy for rate limiting
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-// Add middleware to handle raw text input for variable endpoints (only for non-JSON requests)
-app.use('/api/v1/variables/:name', (req, res, next) => {
+// Enhanced middleware to handle both JSON and text/plain content parsing
+app.use((req, res, next) => {
   const contentType = req.headers['content-type'] || '';
-  if (!contentType.includes('application/json')) {
-    express.text({ type: '*/*' })(req, res, next);
+  const isVariableEndpoint = req.path.startsWith('/api/v1/variables');
+  
+  if (isVariableEndpoint && contentType.includes('text/plain')) {
+    // Parse as text/plain for variable endpoints
+    express.text({ type: 'text/plain' })(req, res, next);
+  } else if (contentType.includes('application/json') || !contentType || contentType.includes('application/x-www-form-urlencoded')) {
+    // Parse as JSON or URL-encoded for standard requests
+    express.json()(req, res, (err) => {
+      if (err) {
+        // If JSON parsing fails and it's a variable endpoint, try parsing as text
+        if (isVariableEndpoint) {
+          express.text({ type: '*/*' })(req, res, next);
+        } else {
+          next(err);
+        }
+      } else {
+        express.urlencoded({ extended: false })(req, res, next);
+      }
+    });
   } else {
-    next();
+    // Default to text parsing for other content types on variable endpoints
+    if (isVariableEndpoint) {
+      express.text({ type: '*/*' })(req, res, next);
+    } else {
+      next();
+    }
   }
 });
 
