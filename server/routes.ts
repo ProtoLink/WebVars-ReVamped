@@ -383,12 +383,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         data: updated
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Toggle read-only error:', error);
-      if (error.message === 'Variable definition not found') {
+      if (error?.message === 'Variable definition not found') {
         return res.status(404).json({ error: 'Variable definition not found' });
       }
-      if (error.message === 'Not authorized to modify read-only status') {
+      if (error?.message === 'Not authorized to modify read-only status') {
         return res.status(403).json({ error: 'Not authorized to modify read-only status' });
       }
       res.status(500).json({ error: 'Failed to toggle read-only status' });
