@@ -360,7 +360,7 @@ export default function Dashboard({ userId }: DashboardProps) {
                       <div>
                         <p className="font-medium text-sm">Database</p>
                         <p className="text-xs text-slate-600 dark:text-slate-400">
-                          {variables.length} definitions
+                          {stats.totalVariables} definitions
                         </p>
                       </div>
                     </div>
