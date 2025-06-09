@@ -365,6 +365,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Toggle read-only status endpoint
+  app.patch('/api/v1/definitions/:id/readonly', extractUserId, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { isReadOnly } = req.body;
+      
+      if (typeof isReadOnly !== 'boolean') {
+        return res.status(400).json({ error: 'isReadOnly must be a boolean' });
+      }
+
+      const updated = await storage.toggleVariableReadOnly(parseInt(id), isReadOnly, req.userId);
+      
+      broadcastUpdate('definition_updated', updated);
+      
+      res.json({
+        success: true,
+        data: updated
+      });
+    } catch (error) {
+      console.error('Toggle read-only error:', error);
+      if (error.message === 'Variable definition not found') {
+        return res.status(404).json({ error: 'Variable definition not found' });
+      }
+      if (error.message === 'Not authorized to modify read-only status') {
+        return res.status(403).json({ error: 'Not authorized to modify read-only status' });
+      }
+      res.status(500).json({ error: 'Failed to toggle read-only status' });
+    }
+  });
+
   // Variable value endpoints
   app.get('/api/v1/variables/:name', extractUserId, async (req: any, res) => {
     try {
