@@ -357,6 +357,7 @@ export function VariableEditor({ variable, isOpen, onClose, mode }: VariableEdit
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/v1/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/variable-values"] });
       toast({
         title: "Your Value Updated",
         description: `Your personal value for "${variable?.name}" has been saved`,
