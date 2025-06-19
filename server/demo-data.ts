@@ -75,6 +75,17 @@ export async function createDemoData(userId: string) {
       readPermission: "definition_owner",
       writePermission: "definition_owner",
       listPermission: "definition_owner"
+    },
+    {
+      name: "Public.Counter",
+      type: "string",
+      defaultValue: "0",
+      ownerId: "system",
+      ownerType: "user",
+      readPermission: "anyone",
+      writePermission: "anyone",
+      listPermission: "anyone",
+      isReadOnly: false
     }
   ];
 
