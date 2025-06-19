@@ -468,7 +468,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!value) {
         // Return default value if no specific value exists
-        const returnValue = definition.defaultValue || '';
+        let returnValue = definition.defaultValue || '';
+        
+        // For enum types, convert enum name to numerical index for text/plain responses
+        if (!wantsJson && definition.type === 'enum' && definition.enumType && returnValue) {
+          const enumIndex = convertEnumNameToIndex(definition.enumType, returnValue);
+          returnValue = enumIndex.toString();
+        }
         
         if (wantsJson) {
           const responseData = {
@@ -488,12 +494,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
           return res.json(responseData);
         } else {
-          // Return raw plaintext value
+          // Return enum as numerical index or raw plaintext value
           return res.set('Content-Type', 'text/plain').send(returnValue);
         }
       }
 
-      // Return stored value as plaintext
+      // Handle enum conversion for text/plain responses
+      let returnValue = value.value;
+      if (!wantsJson && definition.type === 'enum' && definition.enumType && returnValue) {
+        const enumIndex = convertEnumNameToIndex(definition.enumType, returnValue);
+        returnValue = enumIndex.toString();
+      }
+
       if (wantsJson) {
         res.json({
           success: true,
@@ -513,8 +525,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
       } else {
-        // Return raw plaintext value exactly as stored
-        res.set('Content-Type', 'text/plain').send(value.value);
+        // Return enum as numerical index or raw plaintext value
+        res.set('Content-Type', 'text/plain').send(returnValue);
       }
     } catch (error) {
       console.error('Get variable error:', error);
@@ -566,6 +578,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // Plain text input: use entire body as value (convert to string)
         value = String(req.body || '');
+        
+        // For enum types, convert numerical index to enum name for storage
+        if (definition.type === 'enum' && definition.enumType && isNumericString(value)) {
+          const enumIndex = parseInt(value, 10);
+          const enumName = convertEnumIndexToName(definition.enumType, enumIndex);
+          value = enumName; // Store as enum name, but it's still plaintext
+        }
       }
       
       // For read-only variables, the value is locked to the creator's value
