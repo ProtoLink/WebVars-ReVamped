@@ -468,13 +468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!value) {
         // Return default value if no specific value exists
-        let returnValue = definition.defaultValue || '';
-        
-        // Convert enum name to numerical index for text/plain responses
-        if (!wantsJson && definition.type === 'enum' && definition.enumType && returnValue) {
-          const enumIndex = convertEnumNameToIndex(definition.enumType, returnValue);
-          returnValue = enumIndex.toString();
-        }
+        const returnValue = definition.defaultValue || '';
         
         if (wantsJson) {
           const responseData = {
@@ -494,18 +488,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
           return res.json(responseData);
         } else {
-          // Return raw value for Resonite webhooks (enum as numerical index)
+          // Return raw plaintext value
           return res.set('Content-Type', 'text/plain').send(returnValue);
         }
       }
 
-      // Handle enum conversion for text/plain responses
-      let returnValue = value.value;
-      if (!wantsJson && definition.type === 'enum' && definition.enumType && returnValue) {
-        const enumIndex = convertEnumNameToIndex(definition.enumType, returnValue);
-        returnValue = enumIndex.toString();
-      }
-
+      // Return stored value as plaintext
       if (wantsJson) {
         res.json({
           success: true,
@@ -525,8 +513,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
       } else {
-        // Return raw value for Resonite webhooks (enum as numerical index)
-        res.set('Content-Type', 'text/plain').send(returnValue);
+        // Return raw plaintext value exactly as stored
+        res.set('Content-Type', 'text/plain').send(value.value);
       }
     } catch (error) {
       console.error('Get variable error:', error);
@@ -566,29 +554,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Handle both JSON and plain text input
+      // Handle both JSON and plain text input - all values stored as plaintext
       let value;
+      let owner;
       const contentType = req.headers['content-type'] || '';
       
       if (contentType.includes('application/json') && typeof req.body === 'object' && req.body !== null) {
-        // JSON input: extract value from body object
-        value = req.body.value;
+        // JSON input: extract value and owner from body object
+        value = String(req.body.value || '');
+        owner = req.body.owner;
       } else {
-        // Plain text input: use entire body as value
-        value = req.body;
-        
-        // Convert numerical enum index to enum name for text/plain input
-        if (definition.type === 'enum' && definition.enumType && isNumericString(String(value))) {
-          const enumIndex = parseInt(String(value), 10);
-          const enumName = convertEnumIndexToName(definition.enumType, enumIndex);
-          value = enumName;
-        }
+        // Plain text input: use entire body as value (convert to string)
+        value = String(req.body || '');
       }
       
       // For read-only variables, the value is locked to the creator's value
       // For regular variables, allow owner specification via JSON or use userId
-      const ownerId = definition.isReadOnly ? definition.ownerId : 
-        ((contentType.includes('application/json') && typeof req.body === 'object' ? req.body.owner : undefined) || req.userId);
+      const ownerId = definition.isReadOnly ? definition.ownerId : (owner || req.userId);
 
       if (!ownerId) {
         const wantsJson = req.headers.accept?.includes('application/json') || req.query.format === 'json';
@@ -611,7 +593,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const variableValue = await storage.setVariableValue({
         definitionId: definition.id,
         ownerId,
-        value: String(value)
+        value: value // Already converted to string above
       });
 
       broadcastUpdate('variable_updated', {
