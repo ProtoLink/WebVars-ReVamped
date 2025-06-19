@@ -332,6 +332,7 @@ const formSchema = z.object({
   type: z.string().min(1, "Variable type is required"),
   enumType: z.string().optional(), // For enum types
   isReadOnly: z.boolean().default(false),
+  allowAnyone: z.boolean().default(false), // Anyone access toggle
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -354,18 +355,21 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
       type: "string",
       enumType: "",
       isReadOnly: false,
+      allowAnyone: false,
     },
   });
 
   const handleFormSubmit = async (data: FormData) => {
     try {
-      // Set permissions based on scope to match demo data patterns
+      // Set permissions based on scope and allowAnyone setting
       const isGlobal = data.scope === "global";
+      const allowAnyone = data.allowAnyone;
+      
       const formData = {
         ...data,
         ownerType: "user",
-        readPermission: isGlobal ? "anyone" : "variable_owner",
-        writePermission: isGlobal ? "variable_owner" : "variable_owner",
+        readPermission: allowAnyone ? "anyone" : (isGlobal ? "anyone" : "variable_owner"),
+        writePermission: allowAnyone ? "anyone" : "variable_owner",
         listPermission: isGlobal ? "anyone" : "definition_owner",
       };
       await onSubmit(formData);
@@ -586,6 +590,29 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
                 </div>
               </FormControl>
               <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="allowAnyone"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">
+                  Anyone Access
+                </FormLabel>
+                <div className="text-sm text-muted-foreground">
+                  Allow anonymous users to read and write this variable without authentication
+                </div>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
             </FormItem>
           )}
         />

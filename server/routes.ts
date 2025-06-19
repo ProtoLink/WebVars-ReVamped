@@ -79,10 +79,14 @@ const optionalAuth = async (req: any, res: any, next: any) => {
       if (user) {
         req.userId = userId;
         req.user = user;
+      } else {
+        // For anonymous users, still set userId for value storage/retrieval
+        req.userId = userId;
       }
     } catch (error) {
       console.error('Optional user authentication error:', error);
-      // Continue without authentication rather than failing
+      // For anonymous users, still set userId for value storage/retrieval
+      req.userId = userId;
     }
   }
   
@@ -440,8 +444,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // For read-only variables, always return the creator's value regardless of requester
-      // For anonymous users, use 'anonymous' as default owner or specified owner
-      const ownerId = definition.isReadOnly ? definition.ownerId : (req.query.owner || req.userId || 'anonymous');
+      // For anonymous users, require userId query parameter for value retrieval
+      const ownerId = definition.isReadOnly ? definition.ownerId : (req.query.owner || req.userId);
+      
+      if (!ownerId) {
+        const wantsJson = req.query.format === 'json' ||
+                         (req.headers.accept && req.headers.accept.includes('application/json')) ||
+                         req.headers['x-requested-with'] === 'XMLHttpRequest';
+        if (wantsJson) {
+          return res.status(400).json({ error: 'userId query parameter is required for anonymous access' });
+        } else {
+          return res.status(400).set('Content-Type', 'text/plain').send('Error: userId required');
+        }
+      }
       
       const value = await storage.getVariableValue(definition.id, ownerId);
       
@@ -571,9 +586,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // For read-only variables, the value is locked to the creator's value
-      // For regular variables, allow owner specification via JSON or default to current user (or 'anonymous')
+      // For regular variables, allow owner specification via JSON or use userId
       const ownerId = definition.isReadOnly ? definition.ownerId : 
-        ((contentType.includes('application/json') && typeof req.body === 'object' ? req.body.owner : undefined) || req.userId || 'anonymous');
+        ((contentType.includes('application/json') && typeof req.body === 'object' ? req.body.owner : undefined) || req.userId);
+
+      if (!ownerId) {
+        const wantsJson = req.headers.accept?.includes('application/json') || req.query.format === 'json';
+        if (wantsJson) {
+          return res.status(400).json({ error: 'userId query parameter is required for anonymous access' });
+        } else {
+          return res.status(400).set('Content-Type', 'text/plain').send('Error: userId required');
+        }
+      }
 
       if (value === undefined || value === null || value === '') {
         const wantsJson = req.headers.accept?.includes('application/json') || req.query.format === 'json';
