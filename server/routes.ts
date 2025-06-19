@@ -67,6 +67,33 @@ const extractUserId = async (req: any, res: any, next: any) => {
   }
 };
 
+// Optional authentication middleware for variable operations
+const optionalAuth = async (req: any, res: any, next: any) => {
+  // Try session first, then query parameter for API compatibility
+  const userId = req.session?.userId || req.query.userId as string;
+  
+  if (userId) {
+    try {
+      // Check if user exists in database
+      const user = await storage.getUser(userId);
+      if (user) {
+        req.userId = userId;
+        req.user = user;
+      } else {
+        // For anonymous users, still set userId for value storage/retrieval
+        req.userId = userId;
+      }
+    } catch (error) {
+      console.error('Optional user authentication error:', error);
+      // For anonymous users, still set userId for value storage/retrieval
+      req.userId = userId;
+    }
+  }
+  
+  // Always continue to next middleware, even without authentication
+  next();
+};
+
 // Helper function to get variable definition
 const getVariableDefinition = async (name: string) => {
   const definition = await storage.getVariableDefinition(name);
@@ -248,21 +275,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Variable definition endpoints
-  app.get('/api/v1/definitions', extractUserId, async (req: any, res) => {
+  app.get('/api/v1/definitions', optionalAuth, async (req: any, res) => {
     try {
       // Get all definitions and filter based on permissions
       const allDefinitions = await storage.getVariableDefinitions();
       
       // Filter based on list permissions following Resonite pattern:
       // - Show global variables with "anyone" list permission (regardless of owner)
-      // - Show user's own private variables with "definition_owner" permission
+      // - Show user's own private variables with "definition_owner" permission (if authenticated)
       const visibleDefinitions = allDefinitions.filter(def => {
         // Global variables with "anyone" list permission (visible to all)
         if (def.listPermission === "anyone") {
           return true;
         }
-        // User's own private variables
-        if (def.ownerId === req.userId && def.listPermission === "definition_owner") {
+        // User's own private variables (only if authenticated)
+        if (req.userId && def.ownerId === req.userId && def.listPermission === "definition_owner") {
           return true;
         }
         return false;
@@ -396,13 +423,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Variable value endpoints
-  app.get('/api/v1/variables/:name', extractUserId, async (req: any, res) => {
+  app.get('/api/v1/variables/:name', optionalAuth, async (req: any, res) => {
     try {
       const { name } = req.params;
       const definition = await getVariableDefinition(name);
       
+      // Check read permissions
+      const canRead = definition.readPermission === 'anyone' || 
+                     (req.userId && definition.ownerId === req.userId);
+      
+      if (!canRead) {
+        const wantsJson = req.query.format === 'json' ||
+                         (req.headers.accept && req.headers.accept.includes('application/json')) ||
+                         req.headers['x-requested-with'] === 'XMLHttpRequest';
+        if (wantsJson) {
+          return res.status(403).json({ error: 'Insufficient permissions to read this variable' });
+        } else {
+          return res.status(403).set('Content-Type', 'text/plain').send('Error: Permission denied');
+        }
+      }
+      
       // For read-only variables, always return the creator's value regardless of requester
+      // For anonymous users, require userId query parameter for value retrieval
       const ownerId = definition.isReadOnly ? definition.ownerId : (req.query.owner || req.userId);
+      
+      if (!ownerId) {
+        const wantsJson = req.query.format === 'json' ||
+                         (req.headers.accept && req.headers.accept.includes('application/json')) ||
+                         req.headers['x-requested-with'] === 'XMLHttpRequest';
+        if (wantsJson) {
+          return res.status(400).json({ error: 'userId query parameter is required for anonymous access' });
+        } else {
+          return res.status(400).set('Content-Type', 'text/plain').send('Error: userId required');
+        }
+      }
       
       const value = await storage.getVariableValue(definition.id, ownerId);
       
@@ -416,10 +470,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Return default value if no specific value exists
         let returnValue = definition.defaultValue || '';
         
-        // Convert enum name to numerical index for text/plain responses
+        // For enum types, convert enum name to numerical index for text/plain responses
         if (!wantsJson && definition.type === 'enum' && definition.enumType && returnValue) {
-          const enumIndex = convertEnumNameToIndex(definition.enumType, returnValue);
-          returnValue = enumIndex.toString();
+          if (!isNumericString(returnValue)) {
+            const enumIndex = convertEnumNameToIndex(definition.enumType, returnValue);
+            returnValue = enumIndex.toString();
+          }
         }
         
         if (wantsJson) {
@@ -440,7 +496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
           return res.json(responseData);
         } else {
-          // Return raw value for Resonite webhooks (enum as numerical index)
+          // Return enum as numerical index or raw plaintext value
           return res.set('Content-Type', 'text/plain').send(returnValue);
         }
       }
@@ -448,8 +504,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle enum conversion for text/plain responses
       let returnValue = value.value;
       if (!wantsJson && definition.type === 'enum' && definition.enumType && returnValue) {
-        const enumIndex = convertEnumNameToIndex(definition.enumType, returnValue);
-        returnValue = enumIndex.toString();
+        // If stored value is an enum name, convert to index for text/plain
+        if (!isNumericString(returnValue)) {
+          const enumIndex = convertEnumNameToIndex(definition.enumType, returnValue);
+          returnValue = enumIndex.toString();
+        }
       }
 
       if (wantsJson) {
@@ -471,7 +530,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
       } else {
-        // Return raw value for Resonite webhooks (enum as numerical index)
+        // Return enum as numerical index or raw plaintext value
         res.set('Content-Type', 'text/plain').send(returnValue);
       }
     } catch (error) {
@@ -484,10 +543,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/v1/variables/:name', extractUserId, async (req: any, res) => {
+  app.post('/api/v1/variables/:name', optionalAuth, async (req: any, res) => {
     try {
       const { name } = req.params;
       const definition = await getVariableDefinition(name);
+      
+      // Check write permissions
+      const canWrite = definition.writePermission === 'anyone' || 
+                      (req.userId && definition.ownerId === req.userId);
+      
+      if (!canWrite) {
+        const wantsJson = req.headers.accept?.includes('application/json') || req.query.format === 'json';
+        if (wantsJson) {
+          return res.status(403).json({ error: 'Insufficient permissions to write to this variable' });
+        } else {
+          return res.status(403).set('Content-Type', 'text/plain').send('Error: Permission denied');
+        }
+      }
       
       // Check if variable is read-only
       if (definition.isReadOnly) {
@@ -499,29 +571,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Handle both JSON and plain text input
+      // Handle both JSON and plain text input - all values stored as plaintext
       let value;
+      let owner;
       const contentType = req.headers['content-type'] || '';
       
       if (contentType.includes('application/json') && typeof req.body === 'object' && req.body !== null) {
-        // JSON input: extract value from body object
-        value = req.body.value;
+        // JSON input: extract value and owner from body object
+        value = String(req.body.value || '');
+        owner = req.body.owner;
       } else {
-        // Plain text input: use entire body as value
-        value = req.body;
+        // Plain text input: use entire body as value (convert to string)
+        value = String(req.body || '');
         
-        // Convert numerical enum index to enum name for text/plain input
-        if (definition.type === 'enum' && definition.enumType && isNumericString(String(value))) {
-          const enumIndex = parseInt(String(value), 10);
+        // For enum types, convert numerical index to enum name for storage
+        if (definition.type === 'enum' && definition.enumType && isNumericString(value)) {
+          const enumIndex = parseInt(value, 10);
           const enumName = convertEnumIndexToName(definition.enumType, enumIndex);
-          value = enumName;
+          value = enumName; // Store as enum name, but it's still plaintext
         }
       }
       
       // For read-only variables, the value is locked to the creator's value
-      // For regular variables, allow owner specification via JSON or default to current user
-      const ownerId = definition.isReadOnly ? definition.ownerId : 
-        ((contentType.includes('application/json') && typeof req.body === 'object' ? req.body.owner : undefined) || req.userId);
+      // For regular variables, allow owner specification via JSON or use userId
+      const ownerId = definition.isReadOnly ? definition.ownerId : (owner || req.userId);
+
+      if (!ownerId) {
+        const wantsJson = req.headers.accept?.includes('application/json') || req.query.format === 'json';
+        if (wantsJson) {
+          return res.status(400).json({ error: 'userId query parameter is required for anonymous access' });
+        } else {
+          return res.status(400).set('Content-Type', 'text/plain').send('Error: userId required');
+        }
+      }
 
       if (value === undefined || value === null || value === '') {
         const wantsJson = req.headers.accept?.includes('application/json') || req.query.format === 'json';
@@ -535,7 +617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const variableValue = await storage.setVariableValue({
         definitionId: definition.id,
         ownerId,
-        value: String(value)
+        value: value // Already converted to string above
       });
 
       broadcastUpdate('variable_updated', {

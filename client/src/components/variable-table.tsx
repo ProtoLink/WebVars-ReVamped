@@ -208,6 +208,12 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                             Read-Only
                           </Badge>
                         )}
+                        {(variable.readPermission === "anyone" && variable.writePermission === "anyone") && (
+                          <Badge variant="outline" className="text-xs bg-green-50 border-green-200 text-green-800">
+                            <Globe className="h-2 w-2 mr-1" />
+                            Anyone
+                          </Badge>
+                        )}
                       </div>
                       <div className="text-xs text-slate-600 dark:text-slate-400">
                         {variable.listPermission === "anyone" ? "Accessible to all users" : "Only visible to owner"}

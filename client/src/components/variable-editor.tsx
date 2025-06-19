@@ -515,24 +515,74 @@ export function VariableEditor({ variable, isOpen, onClose, mode, userId }: Vari
             </div>
           </div>
 
-          {/* Read-only toggle for variable creators */}
+          {/* Anyone access toggle for variable creators */}
           {localVariable.ownerId === userId && mode === 'edit' && (
-            <div className="flex flex-row items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <Label className="text-base">
-                  Read-Only Variable
-                </Label>
-                <div className="text-sm text-muted-foreground">
-                  When enabled, only you can modify this variable via the web dashboard. API modifications will be blocked.
+            <div className="space-y-4">
+              <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label className="text-base">
+                    Anyone Access
+                  </Label>
+                  <div className="text-sm text-muted-foreground">
+                    Allow anonymous users to read and write this variable without authentication
+                  </div>
                 </div>
+                <Switch
+                  checked={localVariable.readPermission === "anyone" && localVariable.writePermission === "anyone"}
+                  onCheckedChange={(allowAnyone) => {
+                    // Update permissions optimistically
+                    const newPermissions = allowAnyone 
+                      ? { readPermission: "anyone", writePermission: "anyone" }
+                      : { readPermission: "variable_owner", writePermission: "variable_owner" };
+                    
+                    setLocalVariable(prev => prev ? { ...prev, ...newPermissions } : prev);
+                    
+                    // Make API call to update permissions
+                    fetch(`/api/v1/definitions/${localVariable.name}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                      body: JSON.stringify(newPermissions)
+                    }).then(res => {
+                      if (!res.ok) throw new Error('Failed to update permissions');
+                      queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
+                      toast({
+                        title: "Permissions Updated",
+                        description: `Variable ${allowAnyone ? 'now allows' : 'no longer allows'} anonymous access`,
+                      });
+                    }).catch(error => {
+                      // Revert on error
+                      const revertPermissions = !allowAnyone 
+                        ? { readPermission: "anyone", writePermission: "anyone" }
+                        : { readPermission: "variable_owner", writePermission: "variable_owner" };
+                      setLocalVariable(prev => prev ? { ...prev, ...revertPermissions } : prev);
+                      toast({
+                        title: "Update Failed",
+                        description: "Failed to update permissions",
+                        variant: "destructive",
+                      });
+                    });
+                  }}
+                />
               </div>
-              <Switch
-                checked={localVariable.isReadOnly}
-                onCheckedChange={(isReadOnly) =>
-                  toggleReadOnlyMutation.mutate(isReadOnly)
-                }
-                disabled={toggleReadOnlyMutation.isPending}
-              />
+              
+              <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label className="text-base">
+                    Read-Only Variable
+                  </Label>
+                  <div className="text-sm text-muted-foreground">
+                    When enabled, only you can modify this variable via the web dashboard. API modifications will be blocked.
+                  </div>
+                </div>
+                <Switch
+                  checked={localVariable.isReadOnly}
+                  onCheckedChange={(isReadOnly) =>
+                    toggleReadOnlyMutation.mutate(isReadOnly)
+                  }
+                  disabled={toggleReadOnlyMutation.isPending}
+                />
+              </div>
             </div>
           )}
 
