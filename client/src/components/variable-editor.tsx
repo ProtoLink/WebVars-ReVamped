@@ -528,7 +528,7 @@ export function VariableEditor({ variable, isOpen, onClose, mode, userId }: Vari
                   </div>
                 </div>
                 <Switch
-                  checked={localVariable.readPermission === "anyone" || localVariable.writePermission === "anyone"}
+                  checked={localVariable.readPermission === "anyone" && localVariable.writePermission === "anyone"}
                   onCheckedChange={(allowAnyone) => {
                     // Update permissions optimistically
                     const newPermissions = allowAnyone 
