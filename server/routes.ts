@@ -472,8 +472,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // For enum types, convert enum name to numerical index for text/plain responses
         if (!wantsJson && definition.type === 'enum' && definition.enumType && returnValue) {
-          const enumIndex = convertEnumNameToIndex(definition.enumType, returnValue);
-          returnValue = enumIndex.toString();
+          if (!isNumericString(returnValue)) {
+            const enumIndex = convertEnumNameToIndex(definition.enumType, returnValue);
+            returnValue = enumIndex.toString();
+          }
         }
         
         if (wantsJson) {
@@ -502,8 +504,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle enum conversion for text/plain responses
       let returnValue = value.value;
       if (!wantsJson && definition.type === 'enum' && definition.enumType && returnValue) {
-        const enumIndex = convertEnumNameToIndex(definition.enumType, returnValue);
-        returnValue = enumIndex.toString();
+        // If stored value is an enum name, convert to index for text/plain
+        if (!isNumericString(returnValue)) {
+          const enumIndex = convertEnumNameToIndex(definition.enumType, returnValue);
+          returnValue = enumIndex.toString();
+        }
       }
 
       if (wantsJson) {
