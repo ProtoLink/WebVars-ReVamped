@@ -1,6 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
+import type { IncomingMessage } from "http";
+import type { Socket } from "net";
 import { storage } from "./storage";
 import { insertVariableDefinitionSchema, insertVariableValueSchema, insertWebhookSchema, SUPPORTED_DATA_TYPES, PERMISSION_TYPES } from "@shared/schema";
 import { getEnumValues } from "@shared/resonite-enums";
@@ -107,9 +109,24 @@ const getVariableDefinition = async (name: string) => {
 const broadcastUpdate = (event: string, data: any) => {
   const message = JSON.stringify({ event, data, timestamp: new Date().toISOString() });
   
-  wsConnections.forEach((ws, userId) => {
+  wsConnections.forEach((ws, connectionKey) => {
     if (ws.readyState === WebSocket.OPEN) {
-      ws.send(message);
+      // Check if this is a variable-specific connection
+      if (connectionKey.includes(':')) {
+        // Variable-specific connection format: "userId:variableName"
+        const [userId, variableName] = connectionKey.split(':', 2);
+        
+        // Only send updates for the specific variable and user
+        if (event === 'variable_updated' && 
+            data.name === variableName && 
+            data.owner === userId) {
+          // Send only the plaintext value for variable-specific connections
+          ws.send(data.value || '');
+        }
+      } else {
+        // General connection - send JSON message as before
+        ws.send(message);
+      }
     }
   });
 };
@@ -798,38 +815,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // WebSocket server for real-time updates
   const wss = new WebSocketServer({ 
-    server: httpServer, 
-    path: '/ws'
+    server: httpServer,
+    verifyClient: (info: { origin: string; secure: boolean; req: IncomingMessage }) => {
+      const url = new URL(info.req.url!, `http://${info.req.headers.host}`);
+      // Support both general /ws and variable-specific paths
+      return url.pathname === '/ws' || url.pathname.startsWith('/api/v1/variables/');
+    }
   });
 
-  wss.on('connection', (ws, req) => {
-    console.log('WebSocket connection established');
-    
-    // Simple authentication via query parameter (in production, use proper auth)
+  wss.on('connection', async (ws, req) => {
     const url = new URL(req.url!, `http://${req.headers.host}`);
     const userId = url.searchParams.get('userId');
     
-    if (userId) {
-      wsConnections.set(userId, ws);
-    }
-
-    ws.on('close', () => {
-      if (userId) {
-        wsConnections.delete(userId);
+    // Check if this is a variable-specific WebSocket connection
+    const variableMatch = url.pathname.match(/^\/api\/v1\/variables\/(.+)$/);
+    
+    if (variableMatch) {
+      // Variable-specific WebSocket connection
+      const variableName = decodeURIComponent(variableMatch[1]);
+      console.log(`Variable-specific WebSocket connection for: ${variableName}, userId: ${userId}`);
+      
+      if (!userId) {
+        ws.close(1008, 'userId parameter is required');
+        return;
       }
-      console.log('WebSocket connection closed');
-    });
 
-    ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
-    });
+      try {
+        // Get the variable definition and current value
+        const definition = await getVariableDefinition(variableName);
+        const value = await storage.getVariableValue(definition.id, userId);
+        
+        // Send the current value as plaintext immediately
+        const currentValue = value?.value ?? definition.defaultValue ?? '';
+        ws.send(currentValue);
+        
+        // Store connection with variable-specific key
+        const connectionKey = `${userId}:${variableName}`;
+        wsConnections.set(connectionKey, ws);
+        
+        ws.on('close', () => {
+          wsConnections.delete(connectionKey);
+          console.log(`Variable WebSocket connection closed for: ${variableName}`);
+        });
 
-    // Send initial connection confirmation
-    ws.send(JSON.stringify({
-      event: 'connected',
-      data: { message: 'WebSocket connection established' },
-      timestamp: new Date().toISOString()
-    }));
+        ws.on('error', (error) => {
+          console.error(`Variable WebSocket error for ${variableName}:`, error);
+        });
+        
+      } catch (error) {
+        console.error('Variable WebSocket setup error:', error);
+        ws.close(1011, 'Variable not found or access denied');
+        return;
+      }
+    } else {
+      // General WebSocket connection (existing behavior)
+      console.log('General WebSocket connection established');
+      
+      if (userId) {
+        wsConnections.set(userId, ws);
+      }
+
+      ws.on('close', () => {
+        if (userId) {
+          wsConnections.delete(userId);
+        }
+        console.log('WebSocket connection closed');
+      });
+
+      ws.on('error', (error) => {
+        console.error('WebSocket error:', error);
+      });
+
+      // Send initial connection confirmation
+      ws.send(JSON.stringify({
+        event: 'connected',
+        data: { message: 'WebSocket connection established' },
+        timestamp: new Date().toISOString()
+      }));
+    }
   });
 
   return httpServer;
