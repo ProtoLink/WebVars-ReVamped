@@ -19,7 +19,7 @@ import {
   type UpdateWebhook,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, like, count } from "drizzle-orm";
+import { eq, and, desc, like, count, sql } from "drizzle-orm";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 
@@ -327,7 +327,7 @@ export class DatabaseStorage implements IStorage {
       ));
   }
 
-  // Statistics
+  // Statistics - Optimized to use efficient SQL queries instead of N+1 pattern
   async getStats(userId: string): Promise<{
     totalVariables: number;
     totalValues: number;
@@ -336,39 +336,32 @@ export class DatabaseStorage implements IStorage {
     apiRequestsToday: number;
     activeUsers: number;
   }> {
-    // Get all definitions visible to user (same logic as the definitions endpoint)
-    const allDefinitions = await this.getVariableDefinitions();
-    
-    const visibleDefinitions = allDefinitions.filter(def => {
-      // Global variables with "anyone" list permission (visible to all)
-      if (def.listPermission === "anyone") {
-        return true;
-      }
-      // User's own private variables
-      if (def.ownerId === userId && def.listPermission === "definition_owner") {
-        return true;
-      }
-      return false;
-    });
+    // Single query to get all variable counts by permission type
+    const [variableStats] = await db
+      .select({
+        totalVariables: count(),
+        globalVariables: count(sql`CASE WHEN ${variableDefinitions.listPermission} = 'anyone' THEN 1 END`),
+        privateVariables: count(sql`CASE WHEN ${variableDefinitions.ownerId} = ${userId} AND ${variableDefinitions.listPermission} = 'definition_owner' THEN 1 END`),
+      })
+      .from(variableDefinitions);
 
-    // Count global and private variables separately
-    const globalVariables = allDefinitions.filter(def => def.listPermission === "anyone");
-    const privateVariables = allDefinitions.filter(def => 
-      def.ownerId === userId && def.listPermission === "definition_owner"
-    );
-
-    // Get total values for global variables
-    let totalGlobalValues = 0;
-    for (const def of globalVariables) {
-      const values = await this.getVariableValues(def.id);
-      totalGlobalValues += values.length;
-    }
+    // Single query to get total values for global variables using a subquery
+    const [valueStats] = await db
+      .select({
+        totalValues: count(),
+      })
+      .from(variableValues)
+      .innerJoin(
+        variableDefinitions, 
+        eq(variableValues.definitionId, variableDefinitions.id)
+      )
+      .where(eq(variableDefinitions.listPermission, "anyone"));
 
     return {
-      totalVariables: allDefinitions.length, // Total count of ALL definitions in database
-      totalValues: totalGlobalValues,
-      globalVariables: globalVariables.length,
-      privateVariables: privateVariables.length,
+      totalVariables: Number(variableStats.totalVariables) || 0,
+      totalValues: Number(valueStats.totalValues) || 0,
+      globalVariables: Number(variableStats.globalVariables) || 0,
+      privateVariables: Number(variableStats.privateVariables) || 0,
       apiRequestsToday: 0, // Would need request logging to implement
       activeUsers: 1, // Simplified for now
     };

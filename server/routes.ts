@@ -28,6 +28,7 @@ import helmet from "helmet";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
+import NodeCache from "node-cache";
 
 // Rate limiting middleware
 const apiLimiter = rateLimit({
@@ -45,7 +46,45 @@ const variableLimiter = rateLimit({
 // WebSocket connection tracking
 const wsConnections = new Map<string, WebSocket>();
 
-// Middleware to extract userId from session or URL parameter
+// User cache to reduce database lookups (5 minute TTL)
+const userCache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
+
+// Statistics cache to reduce expensive aggregation queries (2 minute TTL)
+const statsCache = new NodeCache({ stdTTL: 120, checkperiod: 30 });
+
+// Helper function to invalidate stats cache when data changes
+const invalidateStatsCache = () => {
+  statsCache.flushAll();
+};
+
+// WebSocket broadcast batching to reduce message frequency
+const pendingBroadcasts = new Map<string, any[]>();
+const BATCH_DELAY = 50; // 50ms batching delay
+
+// Batched broadcast function
+const batchedBroadcast = (event: string, data: any) => {
+  const key = `${event}:${data.name || data.id || 'general'}`;
+  
+  if (!pendingBroadcasts.has(key)) {
+    pendingBroadcasts.set(key, []);
+    
+    // Schedule broadcast after delay
+    setTimeout(() => {
+      const batch = pendingBroadcasts.get(key);
+      if (batch && batch.length > 0) {
+        // Send the most recent update (last in batch)
+        const latestUpdate = batch[batch.length - 1];
+        immediatelyBroadcast(event, latestUpdate);
+      }
+      pendingBroadcasts.delete(key);
+    }, BATCH_DELAY);
+  }
+  
+  // Add to batch
+  pendingBroadcasts.get(key)!.push(data);
+};
+
+// Middleware to extract userId from session or URL parameter with caching
 const extractUserId = async (req: any, res: any, next: any) => {
   // Try session first, then query parameter for API compatibility
   const userId = req.session?.userId || req.query.userId as string;
@@ -55,8 +94,18 @@ const extractUserId = async (req: any, res: any, next: any) => {
   }
   
   try {
-    // Check if user exists in database
-    const user = await storage.getUser(userId);
+    // Check cache first
+    let user = userCache.get(userId);
+    
+    if (!user) {
+      // Cache miss - fetch from database
+      user = await storage.getUser(userId);
+      if (user) {
+        // Cache the user for future requests
+        userCache.set(userId, user);
+      }
+    }
+    
     if (!user) {
       return res.status(401).json({ error: 'User not found. Please log in or sign up.' });
     }
@@ -69,15 +118,25 @@ const extractUserId = async (req: any, res: any, next: any) => {
   }
 };
 
-// Optional authentication middleware for variable operations
+// Optional authentication middleware for variable operations with caching
 const optionalAuth = async (req: any, res: any, next: any) => {
   // Try session first, then query parameter for API compatibility
   const userId = req.session?.userId || req.query.userId as string;
   
   if (userId) {
     try {
-      // Check if user exists in database
-      const user = await storage.getUser(userId);
+      // Check cache first
+      let user = userCache.get(userId);
+      
+      if (!user) {
+        // Cache miss - fetch from database
+        user = await storage.getUser(userId);
+        if (user) {
+          // Cache the user for future requests
+          userCache.set(userId, user);
+        }
+      }
+      
       if (user) {
         req.userId = userId;
         req.user = user;
@@ -105,8 +164,8 @@ const getVariableDefinition = async (name: string) => {
   return definition;
 };
 
-// Helper function to broadcast WebSocket updates
-const broadcastUpdate = (event: string, data: any) => {
+// Helper function to immediately broadcast WebSocket updates
+const immediatelyBroadcast = (event: string, data: any) => {
   const message = JSON.stringify({ event, data, timestamp: new Date().toISOString() });
   
   wsConnections.forEach((ws, connectionKey) => {
@@ -339,7 +398,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const definition = await storage.createVariableDefinition(validatedData);
       
-      broadcastUpdate('definition_created', definition);
+      batchedBroadcast('definition_created', definition);
+      invalidateStatsCache();
       
       res.status(201).json({
         success: true,
@@ -370,7 +430,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updates = req.body;
       const updated = await storage.updateVariableDefinition(definition.id, updates);
       
-      broadcastUpdate('definition_updated', updated);
+      batchedBroadcast('definition_updated', updated);
+      invalidateStatsCache();
       
       res.json({
         success: true,
@@ -397,7 +458,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.deleteVariableDefinition(definition.id);
       
-      broadcastUpdate('definition_deleted', { name });
+      batchedBroadcast('definition_deleted', { name });
+      invalidateStatsCache();
       
       res.json({
         success: true,
@@ -421,7 +483,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const updated = await storage.toggleVariableReadOnly(parseInt(id), isReadOnly, req.userId);
       
-      broadcastUpdate('definition_updated', updated);
+      batchedBroadcast('definition_updated', updated);
+      invalidateStatsCache();
       
       res.json({
         success: true,
@@ -637,11 +700,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         value: value // Already converted to string above
       });
 
-      broadcastUpdate('variable_updated', {
+      batchedBroadcast('variable_updated', {
         name: definition.name,
         value: variableValue.value,
         owner: variableValue.ownerId
       });
+      invalidateStatsCache();
 
       // Check if request wants JSON response (for dashboard/API explorer)
       // Default to text/plain for Resonite unless explicitly requesting JSON
@@ -699,10 +763,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Statistics endpoint
+  // Statistics endpoint with caching
   app.get('/api/v1/stats', extractUserId, async (req: any, res) => {
     try {
-      const stats = await storage.getStats(req.userId);
+      const cacheKey = `stats_${req.userId}`;
+      
+      // Check cache first
+      let stats = statsCache.get(cacheKey);
+      
+      if (!stats) {
+        // Cache miss - fetch from database
+        stats = await storage.getStats(req.userId);
+        // Cache the stats for future requests
+        statsCache.set(cacheKey, stats);
+      }
+      
       res.json({
         success: true,
         data: stats
@@ -746,11 +821,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const updated = await storage.toggleVariableReadOnly(parseInt(id), isReadOnly, req.userId);
       
-      broadcastUpdate('variable_definition_updated', {
+      batchedBroadcast('variable_definition_updated', {
         id: updated.id,
         name: updated.name,
         isReadOnly: updated.isReadOnly
       });
+      invalidateStatsCache();
       
       res.json({ success: true, data: updated });
     } catch (error) {
@@ -797,11 +873,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         value: String(value)
       });
       
-      broadcastUpdate('variable_updated', {
+      batchedBroadcast('variable_updated', {
         name: definition.name,
         value: variableValue.value,
         owner: variableValue.ownerId
       });
+      invalidateStatsCache();
       
       res.json({ success: true, data: variableValue });
     } catch (error) {

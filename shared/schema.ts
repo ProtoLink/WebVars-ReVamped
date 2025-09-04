@@ -51,7 +51,11 @@ export const variableDefinitions = pgTable("variable_definitions", {
   isReadOnly: boolean("is_read_only").notNull().default(false), // When true, only creator can modify via web dashboard
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_variable_definitions_list_permission").on(table.listPermission),
+  index("idx_variable_definitions_owner_list").on(table.ownerId, table.listPermission),
+  index("idx_variable_definitions_updated_at").on(table.updatedAt),
+]);
 
 // Variable values table
 export const variableValues = pgTable("variable_values", {
