@@ -1110,9 +1110,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create HTTP server
   const httpServer = createServer(app);
 
-  // WebSocket server for real-time updates
+  // WebSocket server for real-time updates with compression
+  // Per-message-deflate compression reduces WebSocket data transfer by 60-80%
   const wss = new WebSocketServer({ 
     server: httpServer,
+    perMessageDeflate: {
+      zlibDeflateOptions: {
+        level: 6, // Compression level (1-9, 6 is balanced)
+      },
+      zlibInflateOptions: {
+        chunkSize: 10 * 1024 // 10KB chunks
+      },
+      clientNoContextTakeover: true, // Don't maintain compression context between messages
+      serverNoContextTakeover: true, // Better for short messages
+      serverMaxWindowBits: 14, // Reduce memory usage
+      clientMaxWindowBits: 14,
+      concurrencyLimit: 10, // Limit concurrent compression operations
+      threshold: 1024 // Only compress messages larger than 1KB
+    },
     verifyClient: (info: { origin: string; secure: boolean; req: IncomingMessage }) => {
       const url = new URL(info.req.url!, `http://${info.req.headers.host}`);
       // Support both general /ws and variable-specific paths
