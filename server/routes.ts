@@ -826,6 +826,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         owner: variableValue.ownerId
       });
       invalidateStatsCache();
+      invalidateResponseCache(`var_${definition.name}_`); // Clear cached variable values
 
       // Check if request wants JSON response (for dashboard/API explorer)
       // Default to text/plain for Resonite unless explicitly requesting JSON
@@ -999,6 +1000,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         owner: variableValue.ownerId
       });
       invalidateStatsCache();
+      invalidateResponseCache(`var_${definition.name}_`); // Clear cached variable values
       
       res.json({ success: true, data: variableValue });
     } catch (error) {
