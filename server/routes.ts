@@ -73,6 +73,9 @@ const statsCache = new NodeCache({ stdTTL: 600, checkperiod: 60 });
 // Response cache for GET endpoints (5 minute TTL)
 const responseCache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
 
+// Permission checks cache (2 minute TTL)
+const permissionCache = new NodeCache({ stdTTL: 120, checkperiod: 30 });
+
 // Smart cache warming configuration
 const cacheWarmingConfig = {
   enabled: true,
@@ -166,6 +169,43 @@ function startCacheWarming() {
   
   // Set up periodic warming
   cacheWarmingInterval = setInterval(warmCache, cacheWarmingConfig.interval);
+}
+
+// Cached permission checking functions
+function checkReadPermission(definition: any, userId: string | undefined): boolean {
+  const cacheKey = `read_${definition.id}_${userId || 'anon'}`;
+  
+  // Check cache first
+  const cached = permissionCache.get(cacheKey);
+  if (cached !== undefined) {
+    return cached as boolean;
+  }
+  
+  // Compute permission
+  const canRead = definition.readPermission === 'anyone' || 
+                 (userId && definition.ownerId === userId);
+  
+  // Cache result
+  permissionCache.set(cacheKey, canRead);
+  return canRead;
+}
+
+function checkWritePermission(definition: any, userId: string | undefined): boolean {
+  const cacheKey = `write_${definition.id}_${userId || 'anon'}`;
+  
+  // Check cache first
+  const cached = permissionCache.get(cacheKey);
+  if (cached !== undefined) {
+    return cached as boolean;
+  }
+  
+  // Compute permission
+  const canWrite = definition.writePermission === 'anyone' || 
+                  (userId && definition.ownerId === userId);
+  
+  // Cache result
+  permissionCache.set(cacheKey, canWrite);
+  return canWrite;
 }
 
 // Helper function to invalidate stats cache when data changes
@@ -726,9 +766,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { name } = req.params;
       const definition = await getVariableDefinition(name);
       
-      // Check read permissions
-      const canRead = definition.readPermission === 'anyone' || 
-                     (req.userId && definition.ownerId === req.userId);
+      // Check read permissions (with caching)
+      const canRead = checkReadPermission(definition, req.userId);
       
       if (!canRead) {
         const wantsJson = req.query.format === 'json' ||
@@ -846,9 +885,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { name } = req.params;
       const definition = await getVariableDefinition(name);
       
-      // Check write permissions
-      const canWrite = definition.writePermission === 'anyone' || 
-                      (req.userId && definition.ownerId === req.userId);
+      // Check write permissions (with caching)
+      const canWrite = checkWritePermission(definition, req.userId);
       
       if (!canWrite) {
         const wantsJson = req.headers.accept?.includes('application/json') || req.query.format === 'json';
