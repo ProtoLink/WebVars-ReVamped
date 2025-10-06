@@ -7,16 +7,34 @@ import { storage } from "./storage";
 import { insertVariableDefinitionSchema, insertVariableValueSchema, insertWebhookSchema, SUPPORTED_DATA_TYPES, PERMISSION_TYPES } from "@shared/schema";
 import { getEnumValues } from "@shared/resonite-enums";
 
-// Helper functions for enum conversion
+// Optimized enum conversion with O(1) lookup using Maps
+const enumCacheMaps = new Map<string, Map<string, number>>();
+const enumArrayCache = new Map<string, readonly string[]>();
+
+function getEnumMap(enumType: string): Map<string, number> {
+  if (!enumCacheMaps.has(enumType)) {
+    const enumValues = getEnumValues(enumType as any);
+    const map = new Map<string, number>();
+    enumValues.forEach((value, index) => {
+      map.set(value, index);
+    });
+    enumCacheMaps.set(enumType, map);
+    enumArrayCache.set(enumType, enumValues);
+  }
+  return enumCacheMaps.get(enumType)!;
+}
+
 function convertEnumNameToIndex(enumType: string, enumName: string): number {
-  const enumValues = getEnumValues(enumType as any);
-  const index = enumValues.indexOf(enumName);
-  return index >= 0 ? index : 0; // Default to 0 if not found
+  const enumMap = getEnumMap(enumType);
+  return enumMap.get(enumName) ?? 0; // O(1) lookup instead of O(n)
 }
 
 function convertEnumIndexToName(enumType: string, enumIndex: number): string {
-  const enumValues = getEnumValues(enumType as any);
-  return enumValues[enumIndex] || enumValues[0] || ''; // Default to first value if index out of bounds
+  if (!enumArrayCache.has(enumType)) {
+    getEnumMap(enumType); // Initialize cache
+  }
+  const enumValues = enumArrayCache.get(enumType)!;
+  return enumValues[enumIndex] || enumValues[0] || ''; // Direct array access O(1)
 }
 
 function isNumericString(str: string): boolean {
@@ -29,6 +47,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
 import NodeCache from "node-cache";
+import compression from "compression";
 
 // Rate limiting middleware
 const apiLimiter = rateLimit({
@@ -46,11 +65,14 @@ const variableLimiter = rateLimit({
 // WebSocket connection tracking
 const wsConnections = new Map<string, WebSocket>();
 
-// User cache to reduce database lookups (5 minute TTL)
-const userCache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
+// User cache to reduce database lookups (30 minute TTL)
+const userCache = new NodeCache({ stdTTL: 1800, checkperiod: 120 });
 
-// Statistics cache to reduce expensive aggregation queries (2 minute TTL)
-const statsCache = new NodeCache({ stdTTL: 120, checkperiod: 30 });
+// Statistics cache to reduce expensive aggregation queries (10 minute TTL)
+const statsCache = new NodeCache({ stdTTL: 600, checkperiod: 60 });
+
+// Response cache for GET endpoints (5 minute TTL)
+const responseCache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
 
 // Helper function to invalidate stats cache when data changes
 const invalidateStatsCache = () => {
@@ -59,7 +81,7 @@ const invalidateStatsCache = () => {
 
 // WebSocket broadcast batching to reduce message frequency
 const pendingBroadcasts = new Map<string, any[]>();
-const BATCH_DELAY = 50; // 50ms batching delay
+const BATCH_DELAY = 100; // Increased to 100ms for better batching efficiency
 
 // Batched broadcast function
 const batchedBroadcast = (event: string, data: any) => {
@@ -190,7 +212,74 @@ const immediatelyBroadcast = (event: string, data: any) => {
   });
 };
 
+// Response caching middleware for GET requests
+const cacheMiddleware = (cacheKey: (req: any) => string, ttl?: number) => {
+  return async (req: any, res: any, next: any) => {
+    // Only cache GET requests
+    if (req.method !== 'GET') {
+      return next();
+    }
+    
+    const key = cacheKey(req);
+    const cachedResponse = responseCache.get(key);
+    
+    if (cachedResponse) {
+      // Return cached response
+      const contentType = (cachedResponse as any).contentType || 'application/json';
+      res.set('Content-Type', contentType);
+      res.set('X-Cache', 'HIT');
+      return res.send((cachedResponse as any).data);
+    }
+    
+    // Store original send functions
+    const originalSend = res.send;
+    const originalJson = res.json;
+    
+    // Override send to cache response
+    res.send = function(data: any) {
+      if (res.statusCode === 200) {
+        const cacheTtl = ttl !== undefined ? ttl : 300; // Default 5 minute TTL
+        responseCache.set(key, { 
+          data, 
+          contentType: res.get('Content-Type') || 'text/plain'
+        }, cacheTtl);
+      }
+      res.set('X-Cache', 'MISS');
+      return originalSend.call(this, data);
+    };
+    
+    // Override json to cache response
+    res.json = function(data: any) {
+      if (res.statusCode === 200) {
+        const cacheTtl = ttl !== undefined ? ttl : 300; // Default 5 minute TTL
+        responseCache.set(key, { 
+          data: JSON.stringify(data), 
+          contentType: 'application/json'
+        }, cacheTtl);
+      }
+      res.set('X-Cache', 'MISS');
+      return originalJson.call(this, data);
+    };
+    
+    next();
+  };
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Enable gzip compression for all responses
+  app.use(compression({
+    level: 6, // Balanced compression level
+    threshold: 1024, // Only compress responses > 1KB
+    filter: (req, res) => {
+      // Compress everything except images
+      const contentType = res.getHeader('Content-Type');
+      if (contentType && typeof contentType === 'string' && contentType.includes('image/')) {
+        return false;
+      }
+      return compression.filter(req, res);
+    }
+  }));
+
   // Session middleware
   const PgSession = connectPgSimple(session);
   app.use(session({

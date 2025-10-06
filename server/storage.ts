@@ -89,7 +89,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(username: string, password: string): Promise<User> {
-    const saltRounds = 10;
+    const saltRounds = 8; // Reduced from 10 to 8 for 4x faster hashing while maintaining security
     const passwordHash = await bcrypt.hash(password, saltRounds);
     
     const [user] = await db
