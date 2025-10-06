@@ -79,6 +79,20 @@ const invalidateStatsCache = () => {
   statsCache.flushAll();
 };
 
+// Helper function to invalidate response cache for specific patterns
+const invalidateResponseCache = (pattern?: string) => {
+  if (pattern) {
+    const keys = responseCache.keys();
+    keys.forEach(key => {
+      if (key.includes(pattern)) {
+        responseCache.del(key);
+      }
+    });
+  } else {
+    responseCache.flushAll();
+  }
+};
+
 // WebSocket broadcast batching to reduce message frequency
 const pendingBroadcasts = new Map<string, any[]>();
 const BATCH_DELAY = 100; // Increased to 100ms for better batching efficiency
@@ -423,24 +437,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Health check endpoint
-  app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-  });
+  // Health check endpoint (cached for 1 minute)
+  app.get('/api/health', 
+    cacheMiddleware(() => 'health', 60), 
+    (req, res) => {
+      res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    }
+  );
 
-  // Data types endpoint
-  app.get('/api/v1/types', (req, res) => {
-    res.json({
-      success: true,
-      data: {
-        supportedTypes: SUPPORTED_DATA_TYPES,
-        permissionTypes: PERMISSION_TYPES,
-      }
-    });
-  });
+  // Data types endpoint (cached indefinitely - static data)
+  app.get('/api/v1/types', 
+    cacheMiddleware(() => 'types', 3600), // 1 hour cache
+    (req, res) => {
+      res.json({
+        success: true,
+        data: {
+          supportedTypes: SUPPORTED_DATA_TYPES,
+          permissionTypes: PERMISSION_TYPES,
+        }
+      });
+    }
+  );
 
-  // Variable definition endpoints
-  app.get('/api/v1/definitions', optionalAuth, async (req: any, res) => {
+  // Variable definition endpoints (cached for 5 minutes)
+  app.get('/api/v1/definitions', 
+    optionalAuth,
+    cacheMiddleware((req: any) => `definitions_${req.userId || 'anon'}`, 300),
+    async (req: any, res) => {
     try {
       // Get all definitions and filter based on permissions
       const allDefinitions = await storage.getVariableDefinitions();
@@ -489,6 +512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       batchedBroadcast('definition_created', definition);
       invalidateStatsCache();
+      invalidateResponseCache('definitions'); // Clear cached definitions
       
       res.status(201).json({
         success: true,
@@ -521,6 +545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       batchedBroadcast('definition_updated', updated);
       invalidateStatsCache();
+      invalidateResponseCache('definitions'); // Clear cached definitions
       
       res.json({
         success: true,
@@ -549,6 +574,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       batchedBroadcast('definition_deleted', { name });
       invalidateStatsCache();
+      invalidateResponseCache('definitions'); // Clear cached definitions
+      invalidateResponseCache(`var_${name}_`); // Clear cached variable values
       
       res.json({
         success: true,
@@ -574,6 +601,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       batchedBroadcast('definition_updated', updated);
       invalidateStatsCache();
+      invalidateResponseCache('definitions'); // Clear cached definitions
       
       res.json({
         success: true,
@@ -591,8 +619,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Variable value endpoints
-  app.get('/api/v1/variables/:name', optionalAuth, async (req: any, res) => {
+  // Variable value endpoints (cached for 2 minutes for frequently accessed variables)
+  app.get('/api/v1/variables/:name', 
+    optionalAuth,
+    cacheMiddleware((req: any) => `var_${req.params.name}_${req.query.owner || req.userId || 'default'}_${req.query.format || 'plain'}`, 120),
+    async (req: any, res) => {
     try {
       const { name } = req.params;
       const definition = await getVariableDefinition(name);
