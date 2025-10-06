@@ -73,6 +73,101 @@ const statsCache = new NodeCache({ stdTTL: 600, checkperiod: 60 });
 // Response cache for GET endpoints (5 minute TTL)
 const responseCache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
 
+// Smart cache warming configuration
+const cacheWarmingConfig = {
+  enabled: true,
+  interval: 60000, // 1 minute check interval
+  refreshThreshold: 0.8, // Refresh when 80% of TTL has passed
+  hotDataTracking: new Map<string, { count: number; lastAccess: Date }>(),
+};
+
+// Track hot data for smart warming
+function trackHotData(key: string) {
+  const existing = cacheWarmingConfig.hotDataTracking.get(key);
+  if (existing) {
+    existing.count++;
+    existing.lastAccess = new Date();
+  } else {
+    cacheWarmingConfig.hotDataTracking.set(key, { count: 1, lastAccess: new Date() });
+  }
+}
+
+// Smart cache warming - preload and refresh hot data before expiry
+async function warmCache() {
+  if (!cacheWarmingConfig.enabled) return;
+  
+  try {
+    // Warm static data (always accessed)
+    if (!responseCache.has('types')) {
+      responseCache.set('types', {
+        data: JSON.stringify({
+          success: true,
+          data: {
+            supportedTypes: SUPPORTED_DATA_TYPES,
+            permissionTypes: PERMISSION_TYPES,
+          }
+        }),
+        contentType: 'application/json'
+      }, 3600); // 1 hour cache
+    }
+    
+    // Warm frequently accessed definitions (anonymous user)
+    const defKey = 'definitions_anon';
+    const defTTL = responseCache.getTtl(defKey);
+    const now = Date.now();
+    
+    if (!defTTL || (defTTL - now) < (300000 * cacheWarmingConfig.refreshThreshold)) {
+      // Refresh before expiry or if missing
+      const allDefinitions = await storage.getVariableDefinitions();
+      const visibleDefinitions = allDefinitions.filter(def => def.listPermission === "anyone");
+      
+      responseCache.set(defKey, {
+        data: JSON.stringify({
+          success: true,
+          data: visibleDefinitions
+        }),
+        contentType: 'application/json'
+      }, 300); // 5 minute cache
+    }
+    
+    // Clean up old hot data tracking (remove entries older than 1 hour)
+    const oneHourAgo = new Date(Date.now() - 3600000);
+    for (const [key, data] of cacheWarmingConfig.hotDataTracking.entries()) {
+      if (data.lastAccess < oneHourAgo) {
+        cacheWarmingConfig.hotDataTracking.delete(key);
+      }
+    }
+    
+    // Warm top 10 most accessed keys
+    const hotKeys = Array.from(cacheWarmingConfig.hotDataTracking.entries())
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 10);
+    
+    for (const [key] of hotKeys) {
+      const ttl = responseCache.getTtl(key);
+      if (ttl && (ttl - now) < (300000 * cacheWarmingConfig.refreshThreshold)) {
+        // Key is about to expire, but we can't refresh it here without the request context
+        // Mark it for refresh on next access
+        responseCache.del(key); // Remove so it gets refreshed on next access
+      }
+    }
+  } catch (error) {
+    console.error('Cache warming error:', error);
+  }
+}
+
+// Start cache warming interval
+let cacheWarmingInterval: NodeJS.Timeout | null = null;
+function startCacheWarming() {
+  if (cacheWarmingInterval) return;
+  
+  // Initial warm
+  warmCache();
+  
+  // Set up periodic warming
+  cacheWarmingInterval = setInterval(warmCache, cacheWarmingConfig.interval);
+}
+
 // Helper function to invalidate stats cache when data changes
 const invalidateStatsCache = () => {
   statsCache.flushAll();
@@ -237,6 +332,8 @@ const cacheMiddleware = (cacheKey: (req: any) => string, ttl?: number) => {
     const cachedResponse = responseCache.get(key);
     
     if (cachedResponse) {
+      // Track hot data access
+      trackHotData(key);
       // Return cached response
       const contentType = (cachedResponse as any).contentType || 'application/json';
       res.set('Content-Type', contentType);
@@ -1094,6 +1191,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
     }
   });
+
+  // Start smart cache warming for frequently accessed data
+  startCacheWarming();
 
   return httpServer;
 }
