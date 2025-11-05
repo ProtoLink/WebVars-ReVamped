@@ -1,21 +1,22 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from "@shared/schema";
+import * as fs from 'fs';
+import * as path from 'path';
 
-neonConfig.webSocketConstructor = ws;
-
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+// Ensure data directory exists
+const dataDir = path.join(process.cwd(), 'data');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
 }
 
-export const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  // Optimize connection pooling for better performance
-  max: 20, // Maximum number of connections (default is 10)
-  idleTimeoutMillis: 30000, // Close idle connections after 30s
-  connectionTimeoutMillis: 2000, // Faster connection timeout
-});
-export const db = drizzle({ client: pool, schema });
+// Create SQLite database file
+const sqlite = new Database(path.join(dataDir, 'webvar.db'));
+
+// Enable foreign keys
+sqlite.pragma('foreign_keys = ON');
+
+// Enable Write-Ahead Logging for better concurrent performance
+sqlite.pragma('journal_mode = WAL');
+
+export const db = drizzle(sqlite, { schema });

@@ -23,20 +23,20 @@ import { eq, and, desc, like, count, sql } from "drizzle-orm";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 
-// Prepared statements for frequently used queries
-// Reduces query parsing overhead by 20-30%
+// SQLite doesn't support prepared statements in the same way
+// We'll use regular queries instead
 const preparedQueries = {
-  getUserById: db.select().from(users).where(eq(users.id, sql.placeholder('id'))).prepare('getUserById'),
-  getDefByName: db.select().from(variableDefinitions).where(eq(variableDefinitions.name, sql.placeholder('name'))).prepare('getDefByName'),
-  getAllDefs: db.select().from(variableDefinitions).orderBy(desc(variableDefinitions.updatedAt)).prepare('getAllDefs'),
-  getValueByIds: db.select().from(variableValues).where(and(
-    eq(variableValues.definitionId, sql.placeholder('defId')),
-    eq(variableValues.ownerId, sql.placeholder('ownerId'))
-  )).prepare('getValueByIds'),
-  getApiKeyByHash: db.select().from(apiKeys).where(and(
-    eq(apiKeys.keyHash, sql.placeholder('hash')),
+  getUserById: (id: string) => db.select().from(users).where(eq(users.id, id)),
+  getDefByName: (name: string) => db.select().from(variableDefinitions).where(eq(variableDefinitions.name, name)),
+  getAllDefs: () => db.select().from(variableDefinitions).orderBy(desc(variableDefinitions.updatedAt)),
+  getValueByIds: (defId: number, ownerId: string) => db.select().from(variableValues).where(and(
+    eq(variableValues.definitionId, defId),
+    eq(variableValues.ownerId, ownerId)
+  )),
+  getApiKeyByHash: (hash: string) => db.select().from(apiKeys).where(and(
+    eq(apiKeys.keyHash, hash),
     eq(apiKeys.isActive, true)
-  )).prepare('getApiKeyByHash'),
+  )),
 };
 
 // Request coalescing to prevent duplicate concurrent database queries
@@ -119,7 +119,7 @@ export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
     // Use request coalescing to prevent duplicate concurrent queries
     return coalescer.coalesce(`user_${id}`, async () => {
-      const [user] = await preparedQueries.getUserById.execute({ id });
+      const [user] = await preparedQueries.getUserById(id);
       return user;
     });
   }
@@ -180,7 +180,7 @@ export class DatabaseStorage implements IStorage {
   async getVariableDefinition(name: string): Promise<VariableDefinition | undefined> {
     // Use request coalescing to prevent duplicate concurrent queries
     return coalescer.coalesce(`def_${name}`, async () => {
-      const [definition] = await preparedQueries.getDefByName.execute({ name });
+      const [definition] = await preparedQueries.getDefByName(name);
       return definition;
     });
   }
@@ -194,7 +194,7 @@ export class DatabaseStorage implements IStorage {
         return await query.where(eq(variableDefinitions.ownerId, ownerId));
       }
       
-      return await preparedQueries.getAllDefs.execute();
+      return await preparedQueries.getAllDefs();
     });
   }
 
@@ -240,7 +240,7 @@ export class DatabaseStorage implements IStorage {
   async getVariableValue(definitionId: number, ownerId: string): Promise<VariableValue | undefined> {
     // Use request coalescing to prevent duplicate concurrent queries
     return coalescer.coalesce(`val_${definitionId}_${ownerId}`, async () => {
-      const [value] = await preparedQueries.getValueByIds.execute({ defId: definitionId, ownerId });
+      const [value] = await preparedQueries.getValueByIds(definitionId, ownerId);
       return value;
     });
   }
@@ -302,7 +302,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getApiKeyByHash(keyHash: string): Promise<ApiKey | undefined> {
-    const [apiKey] = await preparedQueries.getApiKeyByHash.execute({ hash: keyHash });
+    const [apiKey] = await preparedQueries.getApiKeyByHash(keyHash);
     return apiKey;
   }
 
