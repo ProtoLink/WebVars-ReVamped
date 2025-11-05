@@ -166,7 +166,8 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return user;
     } catch (error: any) {
-      if (error.code === '23505' && error.constraint === 'users_email_unique') {
+      // SQLite error handling for unique constraint violations
+      if (error.code === 'SQLITE_CONSTRAINT' || error.message?.includes('UNIQUE constraint failed')) {
         const existingUser = await this.getUser(userData.id);
         if (existingUser) {
           return existingUser;
