@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Cloud, Lock, User } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-provider";
 
 interface AuthFormProps {
   onSuccess: (user: { id: string; firstName: string; lastName: string }) => void;
@@ -106,7 +107,10 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
+    <div className="relative min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">

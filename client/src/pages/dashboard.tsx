@@ -17,6 +17,7 @@ import { VariableTable } from "@/components/variable-table";
 import { CreateVariableForm } from "@/components/create-variable-form";
 import { ApiExplorer } from "@/components/api-explorer";
 import { VariableEditor } from "@/components/variable-editor";
+import { ThemeToggle } from "@/components/theme-provider";
 
 // Navigation items
 const navItems = [
@@ -252,6 +253,7 @@ export default function Dashboard({ userId }: DashboardProps) {
             </div>
             
             <div className="flex space-x-2">
+              <ThemeToggle />
               <Button
                 onClick={() => window.open("/donate", "_blank")}
                 variant="outline"

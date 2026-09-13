@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Heart, Server, Zap, Users, Globe, Coffee } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-provider";
 
 export default function DonatePage() {
   const handleDonateClick = () => {
@@ -9,7 +10,10 @@ export default function DonatePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="relative min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <div className="text-center mb-12">
