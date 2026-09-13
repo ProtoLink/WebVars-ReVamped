@@ -402,7 +402,7 @@ export default function Dashboard({ userId }: DashboardProps) {
                     <DialogHeader>
                       <DialogTitle>Create Variable Definition</DialogTitle>
                       <DialogDescription>
-                        Define a new text variable with its default value and permissions.
+                        Define a new variable with its default value and permissions.
                       </DialogDescription>
                     </DialogHeader>
                     <CreateVariableForm

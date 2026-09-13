@@ -86,7 +86,7 @@ export function CreateVariableForm({ onSubmit, isLoading }: CreateVariableFormPr
               <FormControl>
                 <Input
                   type="text"
-                  placeholder="Enter a default text value"
+                  placeholder="Enter a default value"
                   value={field.value ?? ""}
                   onChange={field.onChange}
                 />
