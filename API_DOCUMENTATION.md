@@ -33,12 +33,8 @@ For simplified integration with unsafe variables that use userId parameter authe
 - API Endpoints: 100 requests per 15 minutes per IP
 - Variable Operations: 30 requests per minute per IP
 
-## Data Types
-Supports all Resonite-compatible data types:
-- `string` - Text values
-- `int` - Integer numbers
-- `float` - Floating-point numbers
-- `bool` - Boolean true/false values
+## Value Format
+All variable defaults and user values are stored and returned as strings. Numbers, booleans, JSON, enum names, and other structured content can still be stored, but the API treats them as text without automatic conversion.
 
 ## Permission Types
 - `public` - Readable by anyone
@@ -70,7 +66,7 @@ Authorization: Bearer YOUR_API_KEY
     {
       "id": 1,
       "name": "player_score",
-      "type": "int",
+      "type": "string",
       "defaultValue": "1500",
       "ownerId": "user-123",
       "ownerType": "user",
@@ -94,7 +90,6 @@ Content-Type: application/json
 **Request Body:**
 ```json
 {
-  "type": "int",
   "defaultValue": "0",
   "ownerType": "user",
   "readPermission": "public",
@@ -151,7 +146,7 @@ GET /api/v1/variables/{name}?userId=YOUR_USER_ID
   "data": {
     "name": "player_score",
     "value": "2100",
-    "type": "int",
+    "type": "string",
     "ownerId": "user-123",
     "updatedAt": "2024-01-01T00:00:00Z"
   }
@@ -198,12 +193,6 @@ Content-Type: text/plain
 2500
 ```
 
-**For Enum Variables (Plain Text):**
-```
-1
-```
-*Note: Use numerical index (0, 1, 2...) which gets converted to enum name automatically*
-
 **Response Formats:**
 
 **Text/Plain (Default for Resonite):**
@@ -218,7 +207,7 @@ OK
   "data": {
     "name": "player_score",
     "value": "2500",
-    "type": "int",
+    "type": "string",
     "ownerId": "user-123",
     "updatedAt": "2024-01-01T12:00:00Z"
   }
@@ -255,12 +244,6 @@ Content-Type: text/plain
 3000
 ```
 
-**For Enum Variables (Plain Text):**
-```
-3
-```
-*Note: Use numerical index (0, 1, 2...) which gets converted to enum name automatically*
-
 **Response:**
 ```json
 {
@@ -268,7 +251,7 @@ Content-Type: text/plain
   "data": {
     "id": 5,
     "name": "player_score",
-    "type": "int",
+    "type": "string",
     "value": "3000",
     "defaultValue": "1000",
     "ownerId": "user-123",
@@ -382,7 +365,7 @@ GET /api/v1/types
 {
   "success": true,
   "data": {
-    "supportedTypes": ["string", "int", "float", "bool"],
+    "supportedTypes": ["string"],
     "permissionTypes": ["public", "friends", "private", "owner"]
   }
 }
@@ -396,8 +379,8 @@ GET /api/v1/types
   "error": "Invalid request data",
   "details": [
     {
-      "field": "type",
-      "message": "Invalid data type"
+      "field": "name",
+      "message": "Invalid variable name"
     }
   ]
 }
@@ -506,7 +489,7 @@ def set_variable(name, value):
 
 #### Get Variable Value
 ```bash
-# Get variable (returns enum as numerical index for text/plain)
+# Get variable as plain text
 curl -H "Authorization: Bearer wv_your_api_key_here" \
      https://your-deployment.replit.app/api/v1/variables/player_score
 
@@ -542,9 +525,6 @@ curl -X POST \
 curl -X POST "https://your-deployment.replit.app/api/v1/variables/player_score?userId=Tacusin" \
      -d "1500"
 
-# Set enum variable with numerical index (converts to enum name)
-curl -X POST "https://your-deployment.replit.app/api/v1/variables/blend_mode?userId=Tacusin" \
-     -d "2"
 ```
 
 #### Update Variable Value - JSON Format
@@ -575,9 +555,6 @@ curl -X PUT \
 curl -X PUT "https://your-deployment.replit.app/api/v1/variables/player_score?userId=Tacusin" \
      -d "2000"
 
-# Update enum variable with numerical index
-curl -X PUT "https://your-deployment.replit.app/api/v1/variables/blend_mode?userId=Tacusin" \
-     -d "5"
 ```
 
 #### Delete Variable
@@ -596,43 +573,21 @@ curl -X DELETE "https://your-deployment.replit.app/api/v1/variables/player_score
 ### ProtoFlux Nodes
 Web Variables can be accessed from within Resonite using standard ProtoFlux nodes:
 
-- **GET_String**: Retrieve variable values (enums return as numerical indices)
-- **POST_String**: Update variable values (enums accept numerical indices)
-- **Variable_Read**: Read typed variable values
-- **Variable_Write**: Write typed variable values
+- **GET_String**: Retrieve variable values as text
+- **POST_String**: Update variable values as text
+- **Variable_Read**: Read variable values
+- **Variable_Write**: Write variable values
 
 ### URL Format for Resonite
 ```
 https://your-deployment.replit.app/api/v1/variables/{variable_name}?userId={your_user_id}
 ```
 
-### Enum Handling
-When working with enum variables in Resonite:
+### String Handling
+WebVar does not parse or convert values based on their contents. A value such as `2`, `false`, or `{"x":1}` is stored and returned as the same text supplied by the client.
 
-**GET Requests:** Return numerical index (0, 1, 2...) instead of enum name
-```bash
-# Example: BlendMode enum with value "Additive" (index 4) returns "4"
-curl "https://your-deployment.replit.app/api/v1/variables/blend_mode?userId=Tacusin"
-# Response: 4
-```
-
-**POST Requests:** Accept numerical index and convert to enum name automatically
-```bash
-# Example: Send "2" to set BlendMode to "Fade" (third enum value)
-curl -X POST "https://your-deployment.replit.app/api/v1/variables/blend_mode?userId=Tacusin" -d "2"
-# Stores "Fade" in database, returns "OK"
-```
-
-### Supported Resonite Data Types
-- **Basic:** string, bool, char, int, uint, long, ulong, short, ushort, byte, sbyte
-- **Float:** half, float, double, decimal
-- **Vectors:** bool2-4, int2-4, uint2-4, long2-4, ulong2-4, float2-4, double2-4
-- **Matrices:** float2x2, float3x3, float4x4, double2x2, double3x3, double4x4
-- **Quaternions:** floatQ, doubleQ
-- **Colors:** color, colorX
-- **Time:** datetime, timespan
-- **Other:** uri, refID
-- **Enums:** 50+ categories including BlendMode, AudioRolloffMode, LightType, etc.
+### Supported Resonite Data Type
+- **String:** use string-compatible nodes for all reads and writes
 
 ### Headers for Resonite HTTP Requests
 ```

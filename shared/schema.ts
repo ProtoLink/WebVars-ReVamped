@@ -37,7 +37,7 @@ export const variableDefinitions = sqliteTable("variable_definitions", {
   name: text("name").notNull().unique(),
   type: text("type").notNull(),
   defaultValue: text("default_value"),
-  enumType: text("enum_type"), // For enum types, stores the specific enum name
+  enumType: text("enum_type"), // Legacy compatibility; string-only definitions keep this null
   ownerId: text("owner_id").notNull(),
   ownerType: text("owner_type").notNull().default("user"), // 'user', 'group', or 'unsafe'
   readPermission: text("read_permission").notNull().default("variable_owner"),
@@ -174,42 +174,8 @@ export type Webhook = typeof webhooks.$inferSelect;
 export type InsertWebhook = z.infer<typeof insertWebhookSchema>;
 export type UpdateWebhook = z.infer<typeof updateWebhookSchema>;
 
-// Supported data types (from Resonite)
-export const SUPPORTED_DATA_TYPES = [
-  // Basic types
-  'string',
-  'bool', 'bool2', 'bool3', 'bool4',
-  'char',
-  'byte', 'sbyte',
-  'short', 'ushort',
-  'int', 'int2', 'int3', 'int4',
-  'uint', 'uint2', 'uint3', 'uint4',
-  'long', 'long2', 'long3', 'long4',
-  'ulong', 'ulong2', 'ulong3', 'ulong4',
-  'half',
-  'float', 'float2', 'float3', 'float4',
-  'double', 'double2', 'double3', 'double4',
-  'decimal',
-  
-  // Matrix types
-  'float2x2', 'float3x3', 'float4x4',
-  'double2x2', 'double3x3', 'double4x4',
-  
-  // Quaternion types
-  'floatQ', 'doubleQ',
-  
-  // Color types
-  'color', 'colorX',
-  
-  // Time types
-  'datetime', 'timespan',
-  
-  // Other types
-  'uri', 'refID',
-  
-  // Enum type
-  'enum'
-] as const;
+// WebVar stores and returns every variable value as text.
+export const SUPPORTED_DATA_TYPES = ['string'] as const;
 
 // Permission types
 export const PERMISSION_TYPES = [
@@ -226,48 +192,5 @@ export const PERMISSION_TYPES = [
   'definition_owner_unsafe'
 ] as const;
 
-// Resonite Enum Types
-export const RESONITE_ENUMS = [
-  'ActiveUserHandling', 'AlphaHandling', 'AntiAliasingMethod', 'AssetToolReplacementMode', 'AssetType',
-  'AudioDistanceSpace', 'AudioInputType', 'AudioLoadMode', 'AudioRolloffMode', 'AudioTypeGroup', 'AvatarExpression', 'Axis',
-  'Blend', 'BlendMode', 'BlockType', 'BodyNode',
-  'CameraClearMode', 'CameraPositioningMode', 'CharacterControllerParameter', 'Chirality', 'CloudProfile',
-  'CloudVariableChangeMode', 'ColliderType', 'ColorMask', 'ColorProfile', 'ColorProfileRequirement',
-  'ComponentHandling', 'CompoundZeroHandling', 'CookiesBrowser', 'Culling', 'CurvePreset',
-  'DataFeedItemChange', 'DateTimeKind', 'DayOfWeek', 'DecompositionMode', 'DependencyHandling',
-  'DepthEncoding', 'DualInputHandling', 'DynamicBoneCollisionDataType',
-  'ECCLevel', 'EndMode', 'Ends', 'EngineAssetClass', 'EventState', 'ExceptionAction', 'EyeSide',
-  'FacetAnchorPoint', 'FilterCombineMode', 'Filtering', 'FingerSegmentType', 'FingerType',
-  'HapticPositionType', 'HeadOutputDevice', 'HostAccessPermission', 'HostAccessScope', 'HttpStatusCode',
-  'ImageProjection', 'InputBlockMode', 'InterpolationMode',
-  'Key', 'KeyboardType', 'KeyframeInterpolation',
-  'LaserHitClass', 'LayoutDirection', 'LayoutHorizontalAlignment', 'LayoutMetric', 'LayoutVerticalAlignment',
-  'LegacyParticleAlignment', 'LightType', 'LineColorMode', 'ListFilterMode', 'LoadStage',
-  'LocomotionArchetype', 'LocomotionReference', 'LoopSetOptions', 'LookAtUser.UserNode',
-  'MappingTarget', 'MaskTextureMode', 'MaterialTag', 'MeshColliderSidedness', 'MeshEmissionSource',
-  'MeshEmissionSpace', 'MessageType', 'MessageValidity', 'MigrationState', 'Model',
-  'MotionVectorMode', 'MouseButton', 'MutePersistence',
-  'NameplateVisibility', 'NineSliceSizing', 'NotificationType',
-  'OwnerType',
-  'PanoramicProjection', 'ParticleAnimationType', 'ParticleTrailMode', 'ParticleTrailTextureMode',
-  'PBR_TextureFormat', 'PermissionState', 'PermissionViolationAction', 'PhotoEncodeFormat',
-  'PhysicsScalingMode', 'Platform', 'PlaybackAction', 'PointerType', 'PointProjection',
-  'PositionType', 'PrimaryLocomotionController', 'Primitive', 'Priority', 'ProgressStage', 'PropertyState',
-  'ReferenceState', 'Relation', 'RenderingContext', 'RestoreMode', 'RootSpace',
-  'SampleRateMode', 'SaveType', 'ScaleMultiplierMode', 'ScreenshotType', 'SensationClass',
-  'SessionAccessLevel', 'Shading', 'ShadowCascadeMode', 'ShadowCastMode', 'ShadowResolutionMode',
-  'ShadowType', 'ShoulderRotationMode', 'SidewaysMovementMode', 'SimulationType', 'SizeFit',
-  'SkinnedBounds', 'SkinWeightMode', 'StaticCameraType', 'SteamChannel', 'SteamCloseReason',
-  'StencilComparison', 'StencilOperation', 'StereoLayout', 'StringComparison',
-  'TextureCompression', 'TextureConversion', 'TextureFilterMode', 'TextureFormat', 'TextureSizeLimit',
-  'TextureSizeRatio', 'TorsoSide', 'TouchEventType', 'TouchType', 'TrackType',
-  'UnlitTextureMode', 'UserRoot.UserNode',
-  'ValueEncoding', 'ValueSpatialVariableMode', 'VibratePreset', 'Viseme', 'VoiceMode',
-  'VolumeMeterMethod', 'VolumePlaneMode',
-  'Winding', 'WireType', 'WorldIdLinkStatus', 'WrapMode',
-  'ZTest', 'ZWrite'
-] as const;
-
 export type DataType = typeof SUPPORTED_DATA_TYPES[number];
 export type PermissionType = typeof PERMISSION_TYPES[number];
-export type ResoniteEnum = typeof RESONITE_ENUMS[number];

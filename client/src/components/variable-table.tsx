@@ -15,8 +15,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 interface VariableDefinition {
   id: number;
   name: string;
-  type: string;
-  enumType?: string | null;
   defaultValue: string | null;
   ownerId: string;
   ownerType: string;
@@ -30,7 +28,6 @@ interface VariableDefinition {
 
 interface VariableValue {
   name: string;
-  type: string;
   value: string | null;
   owner: string;
   isDefault: boolean;
@@ -61,7 +58,6 @@ function useVariableValues(variables: VariableDefinition[], userId: string) {
               // Map API response format to VariableValue interface
               values[variable.name] = {
                 name: data.data.name,
-                type: data.data.type,
                 value: data.data.value,
                 owner: data.data.owner,
                 isDefault: data.data.isDefault

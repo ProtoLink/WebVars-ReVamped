@@ -202,7 +202,11 @@ export class DatabaseStorage implements IStorage {
   async createVariableDefinition(definition: InsertVariableDefinition): Promise<VariableDefinition> {
     const [created] = await db
       .insert(variableDefinitions)
-      .values(definition)
+      .values({
+        ...definition,
+        type: "string",
+        enumType: null,
+      })
       .returning();
     return created;
   }
@@ -210,7 +214,12 @@ export class DatabaseStorage implements IStorage {
   async updateVariableDefinition(id: number, updates: UpdateVariableDefinition): Promise<VariableDefinition> {
     const [updated] = await db
       .update(variableDefinitions)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({
+        ...updates,
+        type: "string",
+        enumType: null,
+        updatedAt: new Date(),
+      })
       .where(eq(variableDefinitions.id, id))
       .returning();
     return updated;

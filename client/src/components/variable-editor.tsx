@@ -3,272 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { getEnumValues } from "@shared/resonite-enums";
-
-// Helper function to render smart input components based on data type
-const renderSmartInput = (type: string, value: string, onChange: (value: string) => void, disabled: boolean, enumType?: string) => {
-  // Handle enum type with specific enum values
-  if (type === 'enum' && enumType) {
-    const enumValues = getEnumValues(enumType as any);
-    return (
-      <Select value={value} onValueChange={onChange} disabled={disabled}>
-        <SelectTrigger>
-          <SelectValue placeholder={`Select ${enumType} value`} />
-        </SelectTrigger>
-        <SelectContent className="max-h-80">
-          {enumValues.map((enumValue) => (
-            <SelectItem key={enumValue} value={enumValue}>
-              {enumValue}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    );
-  }
-
-  switch (type) {
-    case 'bool':
-      return (
-        <Select value={value} onValueChange={onChange} disabled={disabled}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select boolean value" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="true">True</SelectItem>
-            <SelectItem value="false">False</SelectItem>
-          </SelectContent>
-        </Select>
-      );
-
-    case 'color':
-    case 'colorX':
-      return (
-        <div className="flex space-x-2">
-          <Input
-            type="color"
-            value={value.startsWith('#') ? value : '#000000'}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-16 h-10"
-            disabled={disabled}
-          />
-          <Input
-            type="text"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="#RRGGBB or rgba(r,g,b,a)"
-            className="flex-1"
-            disabled={disabled}
-          />
-        </div>
-      );
-
-    case 'datetime':
-      return (
-        <Input
-          type="datetime-local"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-        />
-      );
-
-    case 'uri':
-      return (
-        <Input
-          type="url"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="https://example.com"
-          disabled={disabled}
-        />
-      );
-
-    case 'float':
-    case 'double':
-    case 'decimal':
-    case 'half':
-      return (
-        <Input
-          type="number"
-          step="any"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="0.0"
-          disabled={disabled}
-        />
-      );
-
-    case 'int':
-    case 'uint':
-    case 'long':
-    case 'ulong':
-    case 'short':
-    case 'ushort':
-    case 'byte':
-    case 'sbyte':
-      return (
-        <Input
-          type="number"
-          step="1"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="0"
-          disabled={disabled}
-        />
-      );
-
-    case 'float2':
-    case 'double2':
-    case 'int2':
-    case 'uint2':
-    case 'long2':
-    case 'ulong2':
-    case 'bool2':
-      const parts2 = value.split(',');
-      return (
-        <div className="grid grid-cols-2 gap-2">
-          <Input
-            type={type.includes('bool') ? 'text' : 'number'}
-            step={type.includes('float') || type.includes('double') ? 'any' : '1'}
-            placeholder="X"
-            value={parts2[0] || ''}
-            onChange={(e) => {
-              const newParts = [...parts2];
-              newParts[0] = e.target.value;
-              onChange(newParts.join(','));
-            }}
-            disabled={disabled}
-          />
-          <Input
-            type={type.includes('bool') ? 'text' : 'number'}
-            step={type.includes('float') || type.includes('double') ? 'any' : '1'}
-            placeholder="Y"
-            value={parts2[1] || ''}
-            onChange={(e) => {
-              const newParts = [...parts2];
-              newParts[1] = e.target.value;
-              onChange(newParts.join(','));
-            }}
-            disabled={disabled}
-          />
-        </div>
-      );
-
-    case 'float3':
-    case 'double3':
-    case 'int3':
-    case 'uint3':
-    case 'long3':
-    case 'ulong3':
-    case 'bool3':
-      const parts3 = value.split(',');
-      return (
-        <div className="grid grid-cols-3 gap-2">
-          {['X', 'Y', 'Z'].map((label, index) => (
-            <Input
-              key={label}
-              type={type.includes('bool') ? 'text' : 'number'}
-              step={type.includes('float') || type.includes('double') ? 'any' : '1'}
-              placeholder={label}
-              value={parts3[index] || ''}
-              onChange={(e) => {
-                const newParts = [...parts3];
-                newParts[index] = e.target.value;
-                onChange(newParts.join(','));
-              }}
-              disabled={disabled}
-            />
-          ))}
-        </div>
-      );
-
-    case 'float4':
-    case 'double4':
-    case 'int4':
-    case 'uint4':
-    case 'long4':
-    case 'ulong4':
-    case 'bool4':
-    case 'floatQ':
-    case 'doubleQ':
-      const parts4 = value.split(',');
-      return (
-        <div className="grid grid-cols-2 gap-2">
-          {['X', 'Y', 'Z', 'W'].map((label, index) => (
-            <Input
-              key={label}
-              type={type.includes('bool') ? 'text' : 'number'}
-              step={type.includes('float') || type.includes('double') ? 'any' : '1'}
-              placeholder={label}
-              value={parts4[index] || ''}
-              onChange={(e) => {
-                const newParts = [...parts4];
-                newParts[index] = e.target.value;
-                onChange(newParts.join(','));
-              }}
-              disabled={disabled}
-            />
-          ))}
-        </div>
-      );
-
-    case 'char':
-      return (
-        <Input
-          type="text"
-          maxLength={1}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Single character"
-          disabled={disabled}
-        />
-      );
-
-    case 'timespan':
-      return (
-        <Input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="00:00:00 or Days.Hours:Minutes:Seconds"
-          disabled={disabled}
-        />
-      );
-
-    case 'refID':
-      return (
-        <Input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Reference ID"
-          disabled={disabled}
-        />
-      );
-
-    default:
-      return (
-        <Input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Enter value..."
-          disabled={disabled}
-        />
-      );
-  }
-};
 
 interface VariableDefinition {
   id: number;
   name: string;
-  type: string;
-  enumType?: string | null;
   defaultValue: string | null;
   ownerId: string;
   ownerType: string;
@@ -284,82 +26,32 @@ interface VariableEditorProps {
   variable: VariableDefinition | null;
   isOpen: boolean;
   onClose: () => void;
-  mode: 'edit' | 'view';
+  mode: "edit" | "view";
   userId?: string;
 }
 
 export function VariableEditor({ variable, isOpen, onClose, mode, userId }: VariableEditorProps) {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState("");
   const [isLoadingValue, setIsLoadingValue] = useState(false);
   const [localVariable, setLocalVariable] = useState(variable);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Update local variable when prop changes
   React.useEffect(() => {
     setLocalVariable(variable);
   }, [variable]);
 
-  // Parse different data types
-  const parseValue = (val: string, type: string) => {
-    try {
-      switch (type) {
-        case 'color':
-          // Color format: #RRGGBB or rgba(r,g,b,a)
-          return val.startsWith('#') ? val : `#${val}`;
-        case 'float3':
-          // Float3 format: "x,y,z" or "{x:1,y:2,z:3}"
-          if (val.includes(',')) {
-            const parts = val.split(',').map(p => parseFloat(p.trim()));
-            return { x: parts[0] || 0, y: parts[1] || 0, z: parts[2] || 0 };
-          }
-          return JSON.parse(val);
-        case 'float2':
-          if (val.includes(',')) {
-            const parts = val.split(',').map(p => parseFloat(p.trim()));
-            return { x: parts[0] || 0, y: parts[1] || 0 };
-          }
-          return JSON.parse(val);
-        case 'bool':
-          return val.toLowerCase() === 'true';
-        default:
-          return val;
-      }
-    } catch {
-      return val;
-    }
-  };
-
-  const formatValue = (val: any, type: string) => {
-    switch (type) {
-      case 'float3':
-        if (typeof val === 'object' && val.x !== undefined) {
-          return `${val.x},${val.y},${val.z}`;
-        }
-        return val;
-      case 'float2':
-        if (typeof val === 'object' && val.x !== undefined) {
-          return `${val.x},${val.y}`;
-        }
-        return val;
-      default:
-        return String(val);
-    }
-  };
-
   const updateMutation = useMutation({
     mutationFn: async (newValue: string) => {
-      // For read-only variables, creators can still modify through web dashboard
-      // by using a special endpoint that bypasses read-only restrictions
       if (localVariable?.isReadOnly) {
-        return await apiRequest("PATCH", `/api/v1/definitions/${localVariable.id}/value`, { 
-          value: newValue 
-        });
-      } else {
-        return await apiRequest("POST", `/api/v1/variables/${localVariable?.name}`, { 
-          value: newValue 
+        return await apiRequest("PATCH", `/api/v1/definitions/${localVariable.id}/value`, {
+          value: newValue,
         });
       }
+
+      return await apiRequest("POST", `/api/v1/variables/${localVariable?.name}`, {
+        value: newValue,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
@@ -380,42 +72,38 @@ export function VariableEditor({ variable, isOpen, onClose, mode, userId }: Vari
     },
   });
 
-  // Mutation for toggling read-only status
   const toggleReadOnlyMutation = useMutation({
     mutationFn: async (isReadOnly: boolean) => {
-      // Optimistically update local state immediately
       if (localVariable) {
         setLocalVariable({ ...localVariable, isReadOnly });
       }
-      
+
       const response = await fetch(`/api/v1/definitions/${localVariable?.id}/readonly`, {
-        method: 'PATCH',
+        method: "PATCH",
         body: JSON.stringify({ isReadOnly }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { "Content-Type": "application/json" },
       });
-      if (!response.ok) throw new Error('Failed to update read-only status');
+      if (!response.ok) throw new Error("Failed to update read-only status");
       return response.json();
     },
-    onSuccess: (data, isReadOnly) => {
-      // Update the variable in the cache
+    onSuccess: (_data, isReadOnly) => {
       queryClient.setQueryData(["/api/v1/definitions"], (oldData: any) => {
         if (!oldData?.data) return oldData;
         return {
           ...oldData,
-          data: oldData.data.map((v: any) => 
-            v.id === localVariable?.id ? { ...v, isReadOnly } : v
-          )
+          data: oldData.data.map((item: any) =>
+            item.id === localVariable?.id ? { ...item, isReadOnly } : item,
+          ),
         };
       });
-      
+
       queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
       toast({
         title: "Read-Only Status Updated",
-        description: `Variable is now ${isReadOnly ? 'read-only' : 'editable'}`,
+        description: `Variable is now ${isReadOnly ? "read-only" : "editable"}`,
       });
     },
     onError: (error, isReadOnly) => {
-      // Revert optimistic update on error
       if (localVariable) {
         setLocalVariable({ ...localVariable, isReadOnly: !isReadOnly });
       }
@@ -427,159 +115,127 @@ export function VariableEditor({ variable, isOpen, onClose, mode, userId }: Vari
     },
   });
 
-
-
-  const renderValueInput = () => {
-    if (!variable) return null;
-
-    return (
-      <div className="space-y-2">
-        <Label>Your Value</Label>
-        {renderSmartInput(
-          variable.type,
-          value,
-          setValue,
-          mode === 'view',
-          variable.enumType || undefined
-        )}
-        {variable.type === 'enum' && variable.enumType && (
-          <p className="text-xs text-muted-foreground">
-            Enum Type: {variable.enumType}
-          </p>
-        )}
-      </div>
-    );
-  };
-
-  // Load user-specific value when variable changes
   React.useEffect(() => {
-    if (variable && isOpen) {
-      setIsLoadingValue(true);
-      // Fetch the current user's value for this variable with format=json
-      fetch(`/api/v1/variables/${variable.name}?format=json`, {
-        credentials: 'include'
+    if (!variable || !isOpen) return;
+
+    setIsLoadingValue(true);
+    fetch(`/api/v1/variables/${variable.name}?format=json`, {
+      credentials: "include",
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success && data.data) {
+          setValue(data.data.value ?? "");
+        } else {
+          setValue(variable.defaultValue ?? "");
+        }
       })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success && data.data) {
-            // Always use the actual current value, whether it's user-specific or default
-            setValue(data.data.value || '');
-          } else {
-            // Only fall back to default if API call fails completely
-            setValue(variable.defaultValue || '');
-          }
-        })
-        .catch(() => {
-          // Fallback to default value on error
-          setValue(variable.defaultValue || '');
-        })
-        .finally(() => {
-          setIsLoadingValue(false);
-        });
-    }
+      .catch(() => {
+        setValue(variable.defaultValue ?? "");
+      })
+      .finally(() => {
+        setIsLoadingValue(false);
+      });
   }, [variable, isOpen]);
 
   if (!localVariable) return null;
+
+  const updateAnyoneAccess = (allowAnyone: boolean) => {
+    const newPermissions = allowAnyone
+      ? { readPermission: "anyone", writePermission: "anyone" }
+      : { readPermission: "variable_owner", writePermission: "variable_owner" };
+
+    setLocalVariable((current) => current ? { ...current, ...newPermissions } : current);
+
+    fetch(`/api/v1/definitions/${localVariable.name}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(newPermissions),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Failed to update permissions");
+        queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
+        toast({
+          title: "Permissions Updated",
+          description: `Variable ${allowAnyone ? "now allows" : "no longer allows"} anonymous access`,
+        });
+      })
+      .catch(() => {
+        const revertedPermissions = allowAnyone
+          ? { readPermission: "variable_owner", writePermission: "variable_owner" }
+          : { readPermission: "anyone", writePermission: "anyone" };
+        setLocalVariable((current) => current ? { ...current, ...revertedPermissions } : current);
+        toast({
+          title: "Update Failed",
+          description: "Failed to update permissions",
+          variant: "destructive",
+        });
+      });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'edit' ? 'Set Your Value' : 'Your Value'} for {localVariable.name}
+            {mode === "edit" ? "Set Your Value" : "Your Value"} for {localVariable.name}
             {localVariable.isReadOnly && (
-              <span className="ml-2 text-sm text-blue-600 font-normal">(Read-Only)</span>
+              <span className="ml-2 text-sm font-normal text-blue-600">(Read-Only)</span>
             )}
           </DialogTitle>
           <DialogDescription>
-            {mode === 'edit' 
-              ? localVariable.isReadOnly 
+            {mode === "edit"
+              ? localVariable.isReadOnly
                 ? `Set the value for this read-only variable "${localVariable.name}". Only you can modify this through the web dashboard.`
-                : `Set your personal value for the ${localVariable.type} variable "${localVariable.name}". This won't affect other users' values.`
-              : `View your current personal value for the ${localVariable.type} variable "${localVariable.name}".`
-            }
+                : `Set your personal text value for "${localVariable.name}". This won't affect other users' values.`
+              : `View your current personal text value for "${localVariable.name}".`}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Variable Information</Label>
-            <div className="text-sm text-slate-600 space-y-1">
-              <div>Type: <span className="font-mono">{localVariable.type}</span></div>
+            <div className="space-y-1 text-sm text-slate-600 dark:text-slate-400">
               <div>Owner: {localVariable.ownerType}</div>
               <div>Permissions: R:{localVariable.readPermission} W:{localVariable.writePermission}</div>
               {localVariable.isReadOnly && (
-                <div className="text-blue-600 font-medium">Status: Read-Only (API modifications blocked)</div>
+                <div className="font-medium text-blue-600">Status: Read-Only (API modifications blocked)</div>
               )}
-              <div>Default: <span className="font-mono text-xs bg-slate-100 px-1 rounded">{localVariable.defaultValue || 'null'}</span></div>
+              <div>
+                Default:{" "}
+                <span className="rounded bg-slate-100 px-1 font-mono text-xs dark:bg-slate-800">
+                  {localVariable.defaultValue ?? "null"}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Anyone access toggle for variable creators */}
-          {localVariable.ownerId === userId && mode === 'edit' && (
+          {localVariable.ownerId === userId && mode === "edit" && (
             <div className="space-y-4">
               <div className="flex flex-row items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
-                  <Label className="text-base">
-                    Anyone Access
-                  </Label>
+                  <Label className="text-base">Anyone Access</Label>
                   <div className="text-sm text-muted-foreground">
                     Allow anonymous users to read and write this variable without authentication
                   </div>
                 </div>
                 <Switch
                   checked={localVariable.readPermission === "anyone" && localVariable.writePermission === "anyone"}
-                  onCheckedChange={(allowAnyone) => {
-                    // Update permissions optimistically
-                    const newPermissions = allowAnyone 
-                      ? { readPermission: "anyone", writePermission: "anyone" }
-                      : { readPermission: "variable_owner", writePermission: "variable_owner" };
-                    
-                    setLocalVariable(prev => prev ? { ...prev, ...newPermissions } : prev);
-                    
-                    // Make API call to update permissions
-                    fetch(`/api/v1/definitions/${localVariable.name}`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      credentials: 'include',
-                      body: JSON.stringify(newPermissions)
-                    }).then(res => {
-                      if (!res.ok) throw new Error('Failed to update permissions');
-                      queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
-                      toast({
-                        title: "Permissions Updated",
-                        description: `Variable ${allowAnyone ? 'now allows' : 'no longer allows'} anonymous access`,
-                      });
-                    }).catch(error => {
-                      // Revert on error
-                      const revertPermissions = !allowAnyone 
-                        ? { readPermission: "anyone", writePermission: "anyone" }
-                        : { readPermission: "variable_owner", writePermission: "variable_owner" };
-                      setLocalVariable(prev => prev ? { ...prev, ...revertPermissions } : prev);
-                      toast({
-                        title: "Update Failed",
-                        description: "Failed to update permissions",
-                        variant: "destructive",
-                      });
-                    });
-                  }}
+                  onCheckedChange={updateAnyoneAccess}
                 />
               </div>
-              
+
               <div className="flex flex-row items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
-                  <Label className="text-base">
-                    Read-Only Variable
-                  </Label>
+                  <Label className="text-base">Read-Only Variable</Label>
                   <div className="text-sm text-muted-foreground">
                     When enabled, only you can modify this variable via the web dashboard. API modifications will be blocked.
                   </div>
                 </div>
                 <Switch
                   checked={localVariable.isReadOnly}
-                  onCheckedChange={(isReadOnly) =>
-                    toggleReadOnlyMutation.mutate(isReadOnly)
-                  }
+                  onCheckedChange={(isReadOnly) => toggleReadOnlyMutation.mutate(isReadOnly)}
                   disabled={toggleReadOnlyMutation.isPending}
                 />
               </div>
@@ -588,24 +244,34 @@ export function VariableEditor({ variable, isOpen, onClose, mode, userId }: Vari
 
           {isLoadingValue ? (
             <div className="flex items-center justify-center py-8">
-              <div className="text-sm text-slate-600">Loading your value...</div>
+              <div className="text-sm text-slate-600 dark:text-slate-400">Loading your value...</div>
             </div>
           ) : (
-            renderValueInput()
+            <div className="space-y-2">
+              <Label htmlFor="variable-value">Your Value</Label>
+              <Input
+                id="variable-value"
+                type="text"
+                value={value}
+                onChange={(event) => setValue(event.target.value)}
+                placeholder="Enter a text value"
+                disabled={mode === "view"}
+              />
+            </div>
           )}
 
           <div className="flex space-x-2 pt-4">
-            {mode === 'edit' && (
+            {mode === "edit" && (
               <Button
                 onClick={() => updateMutation.mutate(value)}
                 disabled={updateMutation.isPending}
                 className="flex-1"
               >
-                {updateMutation.isPending ? 'Updating...' : 'Update'}
+                {updateMutation.isPending ? "Updating..." : "Update"}
               </Button>
             )}
             <Button variant="outline" onClick={onClose}>
-              {mode === 'edit' ? 'Cancel' : 'Close'}
+              {mode === "edit" ? "Cancel" : "Close"}
             </Button>
           </div>
         </div>

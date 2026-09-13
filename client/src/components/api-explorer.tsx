@@ -165,7 +165,7 @@ export function ApiExplorer({ onSendRequest }: ApiExplorerProps) {
                     />
                     {contentType === "text/plain" && (
                       <p className="text-xs text-slate-500 mt-1">
-                        For enums: Use numerical index (0, 1, 2...) which will be converted to enum names automatically
+                        Plain text is stored exactly as provided.
                       </p>
                     )}
                     <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs">

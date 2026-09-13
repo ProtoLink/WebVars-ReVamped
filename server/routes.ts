@@ -5,41 +5,6 @@ import type { IncomingMessage } from "http";
 import type { Socket } from "net";
 import { storage } from "./storage";
 import { insertVariableDefinitionSchema, insertVariableValueSchema, insertWebhookSchema, SUPPORTED_DATA_TYPES, PERMISSION_TYPES } from "@shared/schema";
-import { getEnumValues } from "@shared/resonite-enums";
-
-// Optimized enum conversion with O(1) lookup using Maps
-const enumCacheMaps = new Map<string, Map<string, number>>();
-const enumArrayCache = new Map<string, readonly string[]>();
-
-function getEnumMap(enumType: string): Map<string, number> {
-  if (!enumCacheMaps.has(enumType)) {
-    const enumValues = getEnumValues(enumType as any);
-    const map = new Map<string, number>();
-    enumValues.forEach((value, index) => {
-      map.set(value, index);
-    });
-    enumCacheMaps.set(enumType, map);
-    enumArrayCache.set(enumType, enumValues);
-  }
-  return enumCacheMaps.get(enumType)!;
-}
-
-function convertEnumNameToIndex(enumType: string, enumName: string): number {
-  const enumMap = getEnumMap(enumType);
-  return enumMap.get(enumName) ?? 0; // O(1) lookup instead of O(n)
-}
-
-function convertEnumIndexToName(enumType: string, enumIndex: number): string {
-  if (!enumArrayCache.has(enumType)) {
-    getEnumMap(enumType); // Initialize cache
-  }
-  const enumValues = enumArrayCache.get(enumType)!;
-  return enumValues[enumIndex] || enumValues[0] || ''; // Direct array access O(1)
-}
-
-function isNumericString(str: string): boolean {
-  return /^\d+$/.test(str.trim());
-}
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
@@ -637,7 +602,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertVariableDefinitionSchema.parse({
         ...req.body,
         name,
-        ownerId: req.userId
+        ownerId: req.userId,
+        type: "string",
+        enumType: null
       });
 
       // Check if definition already exists
@@ -678,7 +645,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: 'Not authorized to modify this definition' });
       }
 
-      const updates = req.body;
+      const updates = {
+        ...req.body,
+        type: "string",
+        enumType: null
+      };
       const updated = await storage.updateVariableDefinition(definition.id, updates);
       
       batchedBroadcast('definition_updated', updated);
@@ -805,15 +776,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!value) {
         // Return default value if no specific value exists
-        let returnValue = definition.defaultValue || '';
-        
-        // For enum types, convert enum name to numerical index for text/plain responses
-        if (!wantsJson && definition.type === 'enum' && definition.enumType && returnValue) {
-          if (!isNumericString(returnValue)) {
-            const enumIndex = convertEnumNameToIndex(definition.enumType, returnValue);
-            returnValue = enumIndex.toString();
-          }
-        }
+        const returnValue = definition.defaultValue ?? '';
         
         if (wantsJson) {
           const responseData = {
@@ -833,20 +796,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
           return res.json(responseData);
         } else {
-          // Return enum as numerical index or raw plaintext value
           return res.set('Content-Type', 'text/plain').send(returnValue);
         }
       }
 
-      // Handle enum conversion for text/plain responses
-      let returnValue = value.value;
-      if (!wantsJson && definition.type === 'enum' && definition.enumType && returnValue) {
-        // If stored value is an enum name, convert to index for text/plain
-        if (!isNumericString(returnValue)) {
-          const enumIndex = convertEnumNameToIndex(definition.enumType, returnValue);
-          returnValue = enumIndex.toString();
-        }
-      }
+      const returnValue = value.value;
 
       if (wantsJson) {
         res.json({
@@ -914,18 +868,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (contentType.includes('application/json') && typeof req.body === 'object' && req.body !== null) {
         // JSON input: extract value and owner from body object
-        value = String(req.body.value || '');
+        value = String(req.body.value ?? '');
         owner = req.body.owner;
       } else {
         // Plain text input: use entire body as value (convert to string)
-        value = String(req.body || '');
-        
-        // For enum types, convert numerical index to enum name for storage
-        if (definition.type === 'enum' && definition.enumType && isNumericString(value)) {
-          const enumIndex = parseInt(value, 10);
-          const enumName = convertEnumIndexToName(definition.enumType, enumIndex);
-          value = enumName; // Store as enum name, but it's still plaintext
-        }
+        value = String(req.body ?? '');
       }
       
       // For read-only variables, the value is locked to the creator's value

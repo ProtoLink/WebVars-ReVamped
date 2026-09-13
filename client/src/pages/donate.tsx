@@ -94,8 +94,8 @@ export default function DonatePage() {
                 <div className="grid grid-cols-2 gap-2">
                   <Badge variant="secondary" className="text-xs">Real-time Sync</Badge>
                   <Badge variant="secondary" className="text-xs">API Integration</Badge>
-                  <Badge variant="secondary" className="text-xs">Resonite Types</Badge>
-                  <Badge variant="secondary" className="text-xs">Enum Support</Badge>
+                  <Badge variant="secondary" className="text-xs">String Values</Badge>
+                  <Badge variant="secondary" className="text-xs">Text Defaults</Badge>
                   <Badge variant="secondary" className="text-xs">WebSocket Events</Badge>
                   <Badge variant="secondary" className="text-xs">Permission Controls</Badge>
                   <Badge variant="secondary" className="text-xs">Dashboard UI</Badge>
@@ -187,8 +187,8 @@ export default function DonatePage() {
                 <div className="text-sm text-slate-600 dark:text-slate-400">Uptime</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">50+</div>
-                <div className="text-sm text-slate-600 dark:text-slate-400">Data Types</div>
+                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">Text</div>
+                <div className="text-sm text-slate-600 dark:text-slate-400">Value Format</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">∞</div>
