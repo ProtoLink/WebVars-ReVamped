@@ -23,8 +23,7 @@ import { eq, and, desc, like, count, sql } from "drizzle-orm";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 
-// SQLite doesn't support prepared statements in the same way
-// We'll use regular queries instead
+// Shared query helpers for the managed PostgreSQL store.
 const preparedQueries = {
   getUserById: (id: string) => db.select().from(users).where(eq(users.id, id)),
   getDefByName: (name: string) => db.select().from(variableDefinitions).where(eq(variableDefinitions.name, name)),
@@ -264,22 +263,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setVariableValue(value: InsertVariableValue): Promise<VariableValue> {
-    const existing = await this.getVariableValue(value.definitionId, value.ownerId);
-    
-    if (existing) {
-      const [updated] = await db
-        .update(variableValues)
-        .set({ value: value.value, updatedAt: new Date() })
-        .where(eq(variableValues.id, existing.id))
-        .returning();
-      return updated;
-    } else {
-      const [created] = await db
-        .insert(variableValues)
-        .values(value)
-        .returning();
-      return created;
-    }
+    const [saved] = await db
+      .insert(variableValues)
+      .values(value)
+      .onConflictDoUpdate({
+        target: [variableValues.definitionId, variableValues.ownerId],
+        set: {
+          value: value.value,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return saved;
   }
 
   async updateVariableValue(id: number, updates: UpdateVariableValue): Promise<VariableValue> {

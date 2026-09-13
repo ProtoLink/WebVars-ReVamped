@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { verifyDatabaseConnection } from "./db";
 
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy for rate limiting
@@ -77,6 +78,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  await verifyDatabaseConnection();
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

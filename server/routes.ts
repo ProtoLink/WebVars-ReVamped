@@ -100,7 +100,7 @@ async function warmCache() {
     
     // Clean up old hot data tracking (remove entries older than 1 hour)
     const oneHourAgo = new Date(Date.now() - 3600000);
-    for (const [key, data] of cacheWarmingConfig.hotDataTracking.entries()) {
+    for (const [key, data] of Array.from(cacheWarmingConfig.hotDataTracking.entries())) {
       if (data.lastAccess < oneHourAgo) {
         cacheWarmingConfig.hotDataTracking.delete(key);
       }
@@ -147,8 +147,8 @@ function checkReadPermission(definition: any, userId: string | undefined): boole
   }
   
   // Compute permission
-  const canRead = definition.readPermission === 'anyone' || 
-                 (userId && definition.ownerId === userId);
+  const canRead = definition.readPermission === 'anyone' ||
+                  Boolean(userId && definition.ownerId === userId);
   
   // Cache result
   permissionCache.set(cacheKey, canRead);
@@ -165,8 +165,8 @@ function checkWritePermission(definition: any, userId: string | undefined): bool
   }
   
   // Compute permission
-  const canWrite = definition.writePermission === 'anyone' || 
-                  (userId && definition.ownerId === userId);
+  const canWrite = definition.writePermission === 'anyone' ||
+                   Boolean(userId && definition.ownerId === userId);
   
   // Cache result
   permissionCache.set(cacheKey, canWrite);

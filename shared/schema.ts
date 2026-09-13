@@ -1,51 +1,57 @@
 import {
-  sqliteTable,
+  pgTable,
   text,
+  varchar,
   integer,
+  serial,
+  boolean,
+  timestamp,
+  jsonb,
   index,
-} from "drizzle-orm/sqlite-core";
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 
 // Session storage table for authentication
-export const sessions = sqliteTable(
+export const sessions = pgTable(
   "sessions",
   {
-    sid: text("sid").primaryKey(),
-    sess: text("sess").notNull(),
-    expire: integer("expire", { mode: "timestamp" }).notNull(),
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
   },
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
 // User storage table
-export const users = sqliteTable("users", {
-  id: text("id").primaryKey().notNull(),
-  email: text("email").unique(),
-  passwordHash: text("password_hash").notNull(),
-  firstName: text("first_name"),
-  lastName: text("last_name"),
-  profileImageUrl: text("profile_image_url"),
-  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().notNull(),
+  email: varchar("email").unique(),
+  passwordHash: varchar("password_hash").notNull(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Variable definitions table
-export const variableDefinitions = sqliteTable("variable_definitions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  name: text("name").notNull().unique(),
-  type: text("type").notNull(),
+export const variableDefinitions = pgTable("variable_definitions", {
+  id: serial("id").primaryKey(),
+  name: varchar("name").notNull().unique(),
+  type: varchar("type").notNull().default("string"),
   defaultValue: text("default_value"),
-  enumType: text("enum_type"), // Legacy compatibility; string-only definitions keep this null
-  ownerId: text("owner_id").notNull(),
-  ownerType: text("owner_type").notNull().default("user"), // 'user', 'group', or 'unsafe'
-  readPermission: text("read_permission").notNull().default("variable_owner"),
-  writePermission: text("write_permission").notNull().default("variable_owner"),
-  listPermission: text("list_permission").notNull().default("definition_owner"),
-  isReadOnly: integer("is_read_only", { mode: "boolean" }).notNull().default(false), // When true, only creator can modify via web dashboard
-  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+  enumType: varchar("enum_type"), // Legacy compatibility; string-only definitions keep this null
+  ownerId: varchar("owner_id").notNull(),
+  ownerType: varchar("owner_type").notNull().default("user"), // 'user', 'group', or 'unsafe'
+  readPermission: varchar("read_permission").notNull().default("variable_owner"),
+  writePermission: varchar("write_permission").notNull().default("variable_owner"),
+  listPermission: varchar("list_permission").notNull().default("definition_owner"),
+  isReadOnly: boolean("is_read_only").notNull().default(false), // When true, only creator can modify via web dashboard
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
   index("idx_variable_definitions_list_permission").on(table.listPermission),
   index("idx_variable_definitions_owner_list").on(table.ownerId, table.listPermission),
@@ -53,38 +59,39 @@ export const variableDefinitions = sqliteTable("variable_definitions", {
 ]);
 
 // Variable values table
-export const variableValues = sqliteTable("variable_values", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const variableValues = pgTable("variable_values", {
+  id: serial("id").primaryKey(),
   definitionId: integer("definition_id").notNull().references(() => variableDefinitions.id, { onDelete: "cascade" }),
-  ownerId: text("owner_id").notNull(), // Can be user ID or group ID
+  ownerId: varchar("owner_id").notNull(), // Can be user ID or group ID
   value: text("value").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
   index("idx_variable_values_definition_owner").on(table.definitionId, table.ownerId),
+  uniqueIndex("variable_values_definition_owner_unique").on(table.definitionId, table.ownerId),
 ]);
 
 // API keys table for external access
-export const apiKeys = sqliteTable("api_keys", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: text("user_id").notNull().references(() => users.id),
-  keyHash: text("key_hash").notNull().unique(),
-  name: text("name").notNull(),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  lastUsed: integer("last_used", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+export const apiKeys = pgTable("api_keys", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  keyHash: varchar("key_hash").notNull().unique(),
+  name: varchar("name").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  lastUsed: timestamp("last_used"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Webhooks table for real-time notifications
-export const webhooks = sqliteTable("webhooks", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: text("user_id").notNull().references(() => users.id),
-  url: text("url").notNull(),
-  events: text("events").notNull(), // JSON string array of event types
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  secret: text("secret"),
-  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+export const webhooks = pgTable("webhooks", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  url: varchar("url").notNull(),
+  events: jsonb("events").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  secret: varchar("secret"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Relations
