@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import DonatePage from "@/pages/donate";
 import { apiRequest } from "@/lib/queryClient";
+import { ThemeProvider } from "@/components/theme-provider";
 
 interface User {
   id: string;
@@ -76,10 +77,12 @@ function AppContent() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Toaster />
-      <AppContent />
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <Toaster />
+        <AppContent />
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 
