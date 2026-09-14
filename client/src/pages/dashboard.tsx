@@ -82,15 +82,10 @@ export default function Dashboard({ userId }: DashboardProps) {
           queryClient.invalidateQueries({ queryKey: ["/api/v1/stats", { userId }] });
           break;
         case "variable_updated":
-          // Force immediate refresh of variable values for real-time updates
+          // Refresh the dashboard's single batch query once.
           queryClient.invalidateQueries({ queryKey: ["/api/v1/variable-values"] });
           queryClient.invalidateQueries({ queryKey: ["/api/v1/stats", { userId }] });
-          
-          // Use a small delay to ensure the API has processed the update
-          setTimeout(() => {
-            queryClient.refetchQueries({ queryKey: ["/api/v1/variable-values"] });
-          }, 50);
-          
+
           toast({
             title: "Variable Updated",
             description: `Variable ${lastMessage.data.name} was updated`,

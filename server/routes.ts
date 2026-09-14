@@ -611,6 +611,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/v1/dashboard/variable-values', extractUserId, async (req: any, res) => {
+    try {
+      const definitions = await storage.getVariableDefinitions();
+      const readableDefinitions = definitions.filter(definition => {
+        const isVisible = definition.listPermission === 'anyone' ||
+          (definition.ownerId === req.userId && definition.listPermission === 'definition_owner');
+
+        return isVisible && checkReadPermission(definition, req.userId);
+      });
+
+      const valueRequests = readableDefinitions.map(definition => ({
+        definitionId: definition.id,
+        ownerId: definition.isReadOnly ? definition.ownerId : req.userId,
+      }));
+      const storedValues = await storage.getVariableValuesBatch(valueRequests);
+      const valuesByDefinitionAndOwner = new Map(
+        storedValues.map(value => [
+          `${value.definitionId}:${value.ownerId}`,
+          value,
+        ]),
+      );
+
+      const values = Object.fromEntries(
+        readableDefinitions.map(definition => {
+          const ownerId = definition.isReadOnly ? definition.ownerId : req.userId;
+          const storedValue = valuesByDefinitionAndOwner.get(`${definition.id}:${ownerId}`);
+
+          return [
+            definition.name,
+            {
+              name: definition.name,
+              value: storedValue?.value ?? definition.defaultValue,
+              owner: ownerId,
+              isDefault: !storedValue,
+            },
+          ];
+        }),
+      );
+
+      res.json({ success: true, data: values });
+    } catch (error) {
+      console.error('Get dashboard variable values error:', error);
+      res.status(500).json({ error: 'Failed to fetch dashboard variable values' });
+    }
+  });
+
   app.post('/api/v1/definitions/import', extractUserId, async (req: any, res) => {
     try {
       const { definitions } = batchDefinitionImportSchema.parse(req.body);

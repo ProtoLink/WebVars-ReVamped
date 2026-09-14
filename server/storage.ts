@@ -19,7 +19,7 @@ import {
   type UpdateWebhook,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, like, count, sql, inArray } from "drizzle-orm";
+import { eq, and, or, desc, like, count, sql, inArray } from "drizzle-orm";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 
@@ -88,6 +88,7 @@ export interface IStorage {
 
   // Variable value operations
   getVariableValue(definitionId: number, ownerId: string): Promise<VariableValue | undefined>;
+  getVariableValuesBatch(requests: Array<{ definitionId: number; ownerId: string }>): Promise<VariableValue[]>;
   getVariableValues(definitionId: number): Promise<VariableValue[]>;
   setVariableValue(value: InsertVariableValue): Promise<VariableValue>;
   updateVariableValue(id: number, updates: UpdateVariableValue): Promise<VariableValue>;
@@ -303,6 +304,35 @@ export class DatabaseStorage implements IStorage {
       const [value] = await preparedQueries.getValueByIds(definitionId, ownerId);
       return value;
     });
+  }
+
+  async getVariableValuesBatch(
+    requests: Array<{ definitionId: number; ownerId: string }>,
+  ): Promise<VariableValue[]> {
+    const uniqueRequests = Array.from(
+      new Map(
+        requests.map((request) => [
+          `${request.definitionId}:${request.ownerId}`,
+          request,
+        ]),
+      ).values(),
+    );
+
+    if (uniqueRequests.length === 0) {
+      return [];
+    }
+
+    const conditions = uniqueRequests.map(({ definitionId, ownerId }) =>
+      and(
+        eq(variableValues.definitionId, definitionId),
+        eq(variableValues.ownerId, ownerId),
+      ),
+    );
+
+    return db
+      .select()
+      .from(variableValues)
+      .where(or(...conditions));
   }
 
   async getVariableValues(definitionId: number): Promise<VariableValue[]> {

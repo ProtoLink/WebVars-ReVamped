@@ -46,35 +46,13 @@ function useVariableValues(variables: VariableDefinition[], userId: string) {
   return useQuery({
     queryKey: ['/api/v1/variable-values', userId, variables.map(v => v.name).sort()],
     queryFn: async () => {
-      const values: Record<string, VariableValue> = {};
-      
-      // Fetch each variable's value for the current user
-      for (const variable of variables) {
-        try {
-          const response = await fetch(`/api/v1/variables/${variable.name}?userId=${userId}&format=json`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success) {
-              // Map API response format to VariableValue interface
-              values[variable.name] = {
-                name: data.data.name,
-                value: data.data.value,
-                owner: data.data.owner,
-                isDefault: data.data.isDefault
-              };
-            }
-          }
-        } catch (error) {
-          console.error(`Failed to fetch value for ${variable.name}:`, error);
-        }
-      }
-      
-      return values;
+      const response = await apiRequest("GET", "/api/v1/dashboard/variable-values");
+      const result = await response.json();
+      return result.data as Record<string, VariableValue>;
     },
     enabled: variables.length > 0 && !!userId,
     refetchOnWindowFocus: false,
     staleTime: 0, // Always fetch fresh data for immediate updates
-    gcTime: 0 // Don't cache query results for immediate refresh
   });
 }
 
@@ -83,7 +61,19 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
   const { toast } = useToast();
   
   // Fetch user-specific variable values
-  const { data: variableValues = {} } = useVariableValues(variables, userId);
+  const { data: variableValues = {}, error: variableValuesError } = useVariableValues(variables, userId);
+
+  useEffect(() => {
+    if (!variableValuesError) return;
+
+    toast({
+      title: "Unable to Load Variable Values",
+      description: variableValuesError instanceof Error
+        ? variableValuesError.message
+        : "Failed to load variable values",
+      variant: "destructive",
+    });
+  }, [toast, variableValuesError]);
 
   // Mutation for toggling read-only status
   const toggleReadOnlyMutation = useMutation({
