@@ -39,6 +39,7 @@ export default function Dashboard({ userId }: DashboardProps) {
   const [showEditor, setShowEditor] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [variableToDelete, setVariableToDelete] = useState<any>(null);
   const [apiTestLoading, setApiTestLoading] = useState(false);
   const [apiTestResult, setApiTestResult] = useState<any>(null);
@@ -438,7 +439,7 @@ export default function Dashboard({ userId }: DashboardProps) {
                     </DialogContent>
                   </Dialog>
 
-                  <Dialog>
+                  <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
                     <DialogTrigger asChild>
                       <Button className="w-full sm:w-auto">
                         <Plus className="h-4 w-4 mr-2" />
@@ -456,7 +457,10 @@ export default function Dashboard({ userId }: DashboardProps) {
                         onSubmit={async (data) => {
                           return new Promise<void>((resolve, reject) => {
                             createVariableMutation.mutate(data, {
-                              onSuccess: () => resolve(),
+                              onSuccess: () => {
+                                setShowCreateDialog(false);
+                                resolve();
+                              },
                               onError: (error) => reject(error)
                             });
                           });
