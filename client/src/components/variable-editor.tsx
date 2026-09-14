@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -30,22 +31,38 @@ interface VariableEditorProps {
   userId?: string;
 }
 
+interface ManagedVariableValue {
+  ownerId: string;
+  value: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
 export function VariableEditor({ variable, isOpen, onClose, mode, userId }: VariableEditorProps) {
   const [value, setValue] = useState("");
   const [isLoadingValue, setIsLoadingValue] = useState(false);
   const [localVariable, setLocalVariable] = useState(variable);
+  const [managedValues, setManagedValues] = useState<ManagedVariableValue[]>([]);
+  const [selectedOwnerId, setSelectedOwnerId] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const canManageReadOnlyValues = Boolean(
+    localVariable?.isReadOnly && localVariable.ownerId === userId,
+  );
+  const managedOwnerIds = localVariable
+    ? Array.from(new Set([localVariable.ownerId, ...managedValues.map(item => item.ownerId)]))
+    : [];
 
   React.useEffect(() => {
     setLocalVariable(variable);
   }, [variable]);
 
   const updateMutation = useMutation({
-    mutationFn: async (newValue: string) => {
+    mutationFn: async ({ newValue, ownerId }: { newValue: string; ownerId?: string }) => {
       if (localVariable?.isReadOnly) {
         return await apiRequest("PATCH", `/api/v1/definitions/${localVariable.id}/value`, {
           value: newValue,
+          ownerId,
         });
       }
 
@@ -57,9 +74,12 @@ export function VariableEditor({ variable, isOpen, onClose, mode, userId }: Vari
       queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/v1/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/v1/variable-values"] });
+      const targetDescription = canManageReadOnlyValues && selectedOwnerId !== userId
+        ? `${selectedOwnerId}'s value`
+        : "Your value";
       toast({
-        title: "Your Value Updated",
-        description: `Your personal value for "${localVariable?.name}" has been saved`,
+        title: "Value Updated",
+        description: `${targetDescription} for "${localVariable?.name}" has been saved`,
       });
       onClose();
     },
@@ -118,25 +138,59 @@ export function VariableEditor({ variable, isOpen, onClose, mode, userId }: Vari
   React.useEffect(() => {
     if (!variable || !isOpen) return;
 
+    let cancelled = false;
     setIsLoadingValue(true);
-    fetch(`/api/v1/variables/${variable.name}?format=json`, {
-      credentials: "include",
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.success && data.data) {
-          setValue(data.data.value ?? "");
-        } else {
-          setValue(variable.defaultValue ?? "");
+    setManagedValues([]);
+    setSelectedOwnerId("");
+
+    const loadValue = async () => {
+      try {
+        if (variable.isReadOnly && variable.ownerId === userId) {
+          const response = await apiRequest("GET", `/api/v1/definitions/${variable.id}/values`);
+          const result = await response.json();
+          const values = (result.data?.values ?? []) as ManagedVariableValue[];
+
+          if (!cancelled) {
+            setManagedValues(values);
+            setSelectedOwnerId(variable.ownerId);
+            const ownerValue = values.find(item => item.ownerId === variable.ownerId);
+            setValue(ownerValue?.value ?? variable.defaultValue ?? "");
+          }
+          return;
         }
-      })
-      .catch(() => {
-        setValue(variable.defaultValue ?? "");
-      })
-      .finally(() => {
-        setIsLoadingValue(false);
-      });
-  }, [variable, isOpen]);
+
+        const response = await apiRequest("GET", `/api/v1/variables/${variable.name}?format=json`);
+        const result = await response.json();
+        if (!cancelled) {
+          setValue(result.data?.value ?? variable.defaultValue ?? "");
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setValue(variable.defaultValue ?? "");
+          toast({
+            title: "Unable to Load Value",
+            description: error instanceof Error ? error.message : "Failed to load variable value",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingValue(false);
+        }
+      }
+    };
+
+    loadValue();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, toast, userId, variable]);
+
+  const selectValueOwner = (ownerId: string) => {
+    setSelectedOwnerId(ownerId);
+    const storedValue = managedValues.find(item => item.ownerId === ownerId);
+    setValue(storedValue?.value ?? localVariable?.defaultValue ?? "");
+  };
 
   if (!localVariable) return null;
 
@@ -179,7 +233,11 @@ export function VariableEditor({ variable, isOpen, onClose, mode, userId }: Vari
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {mode === "edit" ? "Set Your Value" : "Your Value"} for {localVariable.name}
+            {mode === "edit"
+              ? canManageReadOnlyValues
+                ? "Manage Values"
+                : "Set Your Value"
+              : "Your Value"} for {localVariable.name}
             {localVariable.isReadOnly && (
               <span className="ml-2 text-sm font-normal text-blue-600">(Read-Only)</span>
             )}
@@ -187,7 +245,9 @@ export function VariableEditor({ variable, isOpen, onClose, mode, userId }: Vari
           <DialogDescription>
             {mode === "edit"
               ? localVariable.isReadOnly
-                ? `Set the value for this read-only variable "${localVariable.name}". Only you can modify this through the web dashboard.`
+                ? canManageReadOnlyValues
+                  ? `Select an existing value owner and update their value for "${localVariable.name}".`
+                  : `This read-only variable can only be modified by its definition owner.`
                 : `Set your personal text value for "${localVariable.name}". This won't affect other users' values.`
               : `View your current personal text value for "${localVariable.name}".`}
           </DialogDescription>
@@ -248,7 +308,31 @@ export function VariableEditor({ variable, isOpen, onClose, mode, userId }: Vari
             </div>
           ) : (
             <div className="space-y-2">
-              <Label htmlFor="variable-value">Your Value</Label>
+              {canManageReadOnlyValues && mode === "edit" && (
+                <div className="space-y-2 pb-2">
+                  <Label htmlFor="value-owner">Value Owner</Label>
+                  <Select value={selectedOwnerId} onValueChange={selectValueOwner}>
+                    <SelectTrigger id="value-owner">
+                      <SelectValue placeholder="Select a value owner" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {managedOwnerIds.map(ownerId => (
+                        <SelectItem key={ownerId} value={ownerId}>
+                          {ownerId === userId ? `${ownerId} (you)` : ownerId}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    You can edit your own value or a value already created by another user.
+                  </p>
+                </div>
+              )}
+              <Label htmlFor="variable-value">
+                {canManageReadOnlyValues && selectedOwnerId && selectedOwnerId !== userId
+                  ? `Value for ${selectedOwnerId}`
+                  : "Your Value"}
+              </Label>
               <Input
                 id="variable-value"
                 type="text"
@@ -263,8 +347,11 @@ export function VariableEditor({ variable, isOpen, onClose, mode, userId }: Vari
           <div className="flex space-x-2 pt-4">
             {mode === "edit" && (
               <Button
-                onClick={() => updateMutation.mutate(value)}
-                disabled={updateMutation.isPending}
+                onClick={() => updateMutation.mutate({
+                  newValue: value,
+                  ownerId: canManageReadOnlyValues ? selectedOwnerId : undefined,
+                })}
+                disabled={updateMutation.isPending || (canManageReadOnlyValues && !selectedOwnerId)}
                 className="flex-1"
               >
                 {updateMutation.isPending ? "Updating..." : "Update"}

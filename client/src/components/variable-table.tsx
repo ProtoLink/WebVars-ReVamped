@@ -254,15 +254,17 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                       >
                         <Copy className="h-3 w-3" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onEdit(variable)}
-                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 h-8 w-8 p-0"
-                        title="Edit Variable"
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
+                      {(!variable.isReadOnly || variable.ownerId === userId) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onEdit(variable)}
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 h-8 w-8 p-0"
+                          title="Edit Variable"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -406,15 +408,17 @@ export function VariableTable({ variables, onEdit, onView, onDelete, userId = "u
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onEdit(variable)}
-                        className="text-slate-400 hover:text-slate-600 h-8 w-8 p-0"
-                        title="Edit Variable"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      {(!variable.isReadOnly || variable.ownerId === userId) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onEdit(variable)}
+                          className="text-slate-400 hover:text-slate-600 h-8 w-8 p-0"
+                          title="Edit Variable"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"

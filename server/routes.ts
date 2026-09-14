@@ -1169,14 +1169,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/v1/definitions/:id/values', extractUserId, async (req: any, res) => {
+    try {
+      const definitionId = parseInt(req.params.id);
+      if (Number.isNaN(definitionId)) {
+        return res.status(400).json({ error: 'Invalid variable definition ID' });
+      }
+
+      const definitions = await storage.getVariableDefinitions();
+      const definition = definitions.find(def => def.id === definitionId);
+
+      if (!definition) {
+        return res.status(404).json({ error: 'Variable definition not found' });
+      }
+      if (definition.ownerId !== req.userId) {
+        return res.status(403).json({ error: 'Only the variable creator can view all values' });
+      }
+      if (!definition.isReadOnly) {
+        return res.status(400).json({ error: 'Value owner management is only available for read-only variables' });
+      }
+
+      const values = await storage.getVariableValues(definition.id);
+      res.json({
+        success: true,
+        data: {
+          definitionId: definition.id,
+          definitionOwnerId: definition.ownerId,
+          values: values.map(variableValue => ({
+            ownerId: variableValue.ownerId,
+            value: variableValue.value,
+            createdAt: variableValue.createdAt,
+            updatedAt: variableValue.updatedAt,
+          })),
+        },
+      });
+    } catch (error) {
+      console.error('List read-only variable values error:', error);
+      res.status(500).json({ error: 'Failed to list read-only variable values' });
+    }
+  });
+
   // Update read-only variable value via web dashboard (for creators only)
   app.patch('/api/v1/definitions/:id/value', extractUserId, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const { value } = req.body;
+      const { value, ownerId: requestedOwnerId } = req.body;
       
       if (value === undefined || value === null) {
         return res.status(400).json({ error: 'Value is required' });
+      }
+      if (
+        requestedOwnerId !== undefined &&
+        (typeof requestedOwnerId !== 'string' || requestedOwnerId.trim().length === 0)
+      ) {
+        return res.status(400).json({ error: 'ownerId must be a non-empty string' });
       }
       
       // Get the variable definition to check ownership and read-only status
@@ -1195,11 +1241,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!definition.isReadOnly) {
         return res.status(400).json({ error: 'This endpoint is only for read-only variables. Use the regular API for editable variables.' });
       }
+
+      const targetOwnerId = requestedOwnerId?.trim() || definition.ownerId;
+      if (targetOwnerId !== definition.ownerId) {
+        const existingValue = await storage.getVariableValue(definition.id, targetOwnerId);
+        if (!existingValue) {
+          return res.status(404).json({
+            error: 'The selected user does not have an existing value for this variable',
+          });
+        }
+      }
       
-      // Set the value for the creator (owner)
       const variableValue = await storage.setVariableValue({
         definitionId: definition.id,
-        ownerId: definition.ownerId,
+        ownerId: targetOwnerId,
         value: String(value)
       });
       
