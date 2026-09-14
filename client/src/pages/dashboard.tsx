@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Settings, Eye, FileText, BarChart3, Cloud, Database, User, BarChart, Heart } from "lucide-react";
+import { Plus, Settings, Eye, FileText, BarChart3, Cloud, Database, User, BarChart, Heart, Upload } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { useWebSocket } from "@/hooks/useWebSocket";
 import { StatsCards } from "@/components/stats-cards";
 import { VariableTable } from "@/components/variable-table";
 import { CreateVariableForm } from "@/components/create-variable-form";
+import { ImportVariablesForm } from "@/components/import-variables-form";
 import { ApiExplorer } from "@/components/api-explorer";
 import { VariableEditor } from "@/components/variable-editor";
 import { ThemeToggle } from "@/components/theme-provider";
@@ -37,6 +38,7 @@ export default function Dashboard({ userId }: DashboardProps) {
   const [editorMode, setEditorMode] = useState<'edit' | 'view'>('view');
   const [showEditor, setShowEditor] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [variableToDelete, setVariableToDelete] = useState<any>(null);
   const [apiTestLoading, setApiTestLoading] = useState(false);
   const [apiTestResult, setApiTestResult] = useState<any>(null);
@@ -75,6 +77,7 @@ export default function Dashboard({ userId }: DashboardProps) {
         case "definition_created":
         case "definition_updated":
         case "definition_deleted":
+        case "definitions_imported":
           queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
           queryClient.invalidateQueries({ queryKey: ["/api/v1/stats", { userId }] });
           break;
@@ -115,6 +118,31 @@ export default function Dashboard({ userId }: DashboardProps) {
       toast({
         title: "Error",
         description: error.message || "Failed to create variable",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const importVariablesMutation = useMutation({
+    mutationFn: async (definitions: unknown[]) => {
+      const response = await apiRequest("POST", "/api/v1/definitions/import", {
+        definitions,
+      });
+      return response.json();
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/definitions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/stats", { userId }] });
+      setShowImportDialog(false);
+      toast({
+        title: "Definitions Imported",
+        description: `${result.data.count} variable definitions were created`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Import Failed",
+        description: error.message || "No definitions were imported",
         variant: "destructive",
       });
     },
@@ -391,33 +419,58 @@ export default function Dashboard({ userId }: DashboardProps) {
                     <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-xs lg:text-sm ml-1">{userId}</span>
                   </p>
                 </div>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className="w-full sm:w-auto">
-                      <Plus className="h-4 w-4 mr-2" />
-                      New Variable
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="mx-4 sm:mx-0 sm:max-w-[600px]">
-                    <DialogHeader>
-                      <DialogTitle>Create Variable Definition</DialogTitle>
-                      <DialogDescription>
-                        Define a new variable with its default value and permissions.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <CreateVariableForm
-                      onSubmit={async (data) => {
-                        return new Promise<void>((resolve, reject) => {
-                          createVariableMutation.mutate(data, {
-                            onSuccess: () => resolve(),
-                            onError: (error) => reject(error)
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                  <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full sm:w-auto">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Import
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="mx-4 max-h-[90vh] overflow-y-auto sm:mx-0 sm:max-w-[700px]">
+                      <DialogHeader>
+                        <DialogTitle>Import Variable Definitions</DialogTitle>
+                        <DialogDescription>
+                          Create multiple new definitions in one all-or-nothing operation.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <ImportVariablesForm
+                        onSubmit={(definitions) =>
+                          importVariablesMutation.mutateAsync(definitions).then(() => undefined)
+                        }
+                        isLoading={importVariablesMutation.isPending}
+                      />
+                    </DialogContent>
+                  </Dialog>
+
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="w-full sm:w-auto">
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Variable
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="mx-4 sm:mx-0 sm:max-w-[600px]">
+                      <DialogHeader>
+                        <DialogTitle>Create Variable Definition</DialogTitle>
+                        <DialogDescription>
+                          Define a new variable with its default value and permissions.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <CreateVariableForm
+                        onSubmit={async (data) => {
+                          return new Promise<void>((resolve, reject) => {
+                            createVariableMutation.mutate(data, {
+                              onSuccess: () => resolve(),
+                              onError: (error) => reject(error)
+                            });
                           });
-                        });
-                      }}
-                      isLoading={createVariableMutation.isPending}
-                    />
-                  </DialogContent>
-                </Dialog>
+                        }}
+                        isLoading={createVariableMutation.isPending}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
 
               {variablesLoading ? (

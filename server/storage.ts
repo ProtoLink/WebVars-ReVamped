@@ -19,7 +19,7 @@ import {
   type UpdateWebhook,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, like, count, sql } from "drizzle-orm";
+import { eq, and, desc, like, count, sql, inArray } from "drizzle-orm";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 
@@ -63,6 +63,13 @@ class RequestCoalescer {
 
 const coalescer = new RequestCoalescer();
 
+export class VariableDefinitionConflictError extends Error {
+  constructor(public readonly names: string[]) {
+    super("One or more variable definitions already exist");
+    this.name = "VariableDefinitionConflictError";
+  }
+}
+
 export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
@@ -74,6 +81,7 @@ export interface IStorage {
   getVariableDefinition(name: string): Promise<VariableDefinition | undefined>;
   getVariableDefinitions(ownerId?: string): Promise<VariableDefinition[]>;
   createVariableDefinition(definition: InsertVariableDefinition): Promise<VariableDefinition>;
+  createVariableDefinitionsBatch(definitions: InsertVariableDefinition[]): Promise<VariableDefinition[]>;
   updateVariableDefinition(id: number, updates: UpdateVariableDefinition): Promise<VariableDefinition>;
   deleteVariableDefinition(id: number): Promise<void>;
   toggleVariableReadOnly(id: number, isReadOnly: boolean, ownerId: string): Promise<VariableDefinition>;
@@ -208,6 +216,49 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return created;
+  }
+
+  async createVariableDefinitionsBatch(
+    definitions: InsertVariableDefinition[],
+  ): Promise<VariableDefinition[]> {
+    const names = definitions.map((definition) => definition.name);
+
+    try {
+      return await db.transaction(async (transaction) => {
+        const conflicts = await transaction
+          .select({ name: variableDefinitions.name })
+          .from(variableDefinitions)
+          .where(inArray(variableDefinitions.name, names));
+
+        if (conflicts.length > 0) {
+          throw new VariableDefinitionConflictError(
+            conflicts.map((definition) => definition.name),
+          );
+        }
+
+        return transaction
+          .insert(variableDefinitions)
+          .values(
+            definitions.map((definition) => ({
+              ...definition,
+              type: "string",
+              enumType: null,
+            })),
+          )
+          .returning();
+      });
+    } catch (error: any) {
+      if (error instanceof VariableDefinitionConflictError) {
+        throw error;
+      }
+
+      // A concurrent request may create a matching name after the preflight check.
+      if (error?.code === "23505") {
+        throw new VariableDefinitionConflictError(names);
+      }
+
+      throw error;
+    }
   }
 
   async updateVariableDefinition(id: number, updates: UpdateVariableDefinition): Promise<VariableDefinition> {

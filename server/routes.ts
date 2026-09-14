@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import type { IncomingMessage } from "http";
 import type { Socket } from "net";
-import { storage } from "./storage";
+import { storage, VariableDefinitionConflictError } from "./storage";
 import { insertVariableDefinitionSchema, insertVariableValueSchema, insertWebhookSchema, SUPPORTED_DATA_TYPES, PERMISSION_TYPES } from "@shared/schema";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
@@ -24,6 +24,21 @@ const variableLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 30, // limit each IP to 30 variable operations per minute
   message: "Too many variable operations from this IP",
+});
+
+const batchDefinitionImportSchema = z.object({
+  definitions: z.array(
+    z.object({
+      name: z.string()
+        .min(1, "Variable name is required")
+        .regex(/^[a-zA-Z0-9._-]+$/, "Invalid variable name format"),
+      defaultValue: z.string().nullable().optional(),
+      scope: z.enum(["private", "global"]).default("private"),
+      isReadOnly: z.boolean().default(false),
+      allowAnyone: z.boolean().default(false),
+    }),
+  ).min(1, "At least one definition is required")
+    .max(100, "Imports are limited to 100 definitions at a time"),
 });
 
 // WebSocket connection tracking
@@ -593,6 +608,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Get definitions error:', error);
       res.status(500).json({ error: 'Failed to fetch variable definitions' });
+    }
+  });
+
+  app.post('/api/v1/definitions/import', extractUserId, async (req: any, res) => {
+    try {
+      const { definitions } = batchDefinitionImportSchema.parse(req.body);
+      const duplicateNames = definitions
+        .map((definition) => definition.name)
+        .filter((name, index, names) => names.indexOf(name) !== index);
+
+      if (duplicateNames.length > 0) {
+        return res.status(409).json({
+          error: 'Import cancelled because the file contains duplicate variable names',
+          conflicts: Array.from(new Set(duplicateNames)),
+        });
+      }
+
+      const definitionsToCreate = definitions.map((definition) => {
+        const isGlobal = definition.scope === 'global';
+        const allowAnyone = definition.allowAnyone;
+
+        return insertVariableDefinitionSchema.parse({
+          name: definition.name,
+          defaultValue: definition.defaultValue ?? '',
+          ownerId: req.userId,
+          ownerType: 'user',
+          type: 'string',
+          enumType: null,
+          readPermission: allowAnyone ? 'anyone' : (isGlobal ? 'anyone' : 'variable_owner'),
+          writePermission: allowAnyone ? 'anyone' : 'variable_owner',
+          listPermission: isGlobal ? 'anyone' : 'definition_owner',
+          isReadOnly: definition.isReadOnly,
+        });
+      });
+
+      const created = await storage.createVariableDefinitionsBatch(definitionsToCreate);
+
+      immediatelyBroadcast('definitions_imported', {
+        count: created.length,
+      });
+      invalidateStatsCache();
+      invalidateResponseCache('definitions');
+
+      res.status(201).json({
+        success: true,
+        data: {
+          count: created.length,
+          definitions: created,
+        },
+      });
+    } catch (error) {
+      if (error instanceof VariableDefinitionConflictError) {
+        return res.status(409).json({
+          error: 'Import cancelled because one or more variable definitions already exist',
+          conflicts: error.names,
+        });
+      }
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: 'Invalid import data',
+          details: error.errors,
+        });
+      }
+      console.error('Import definitions error:', error);
+      res.status(500).json({ error: 'Failed to import variable definitions' });
     }
   });
 
